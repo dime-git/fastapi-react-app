@@ -41,21 +41,36 @@ class TransactionService:
         for doc in docs:
             transaction = doc.to_dict()
             
+            # Ensure transaction has a currency field
+            if 'currency' not in transaction:
+                # Get default currency
+                default_currency = await CurrencyService.get_default_currency()
+                transaction['currency'] = default_currency['code']
+                
+                # Update the transaction in Firestore with the default currency
+                transactions_ref.document(transaction['id']).update({
+                    'currency': transaction['currency']
+                })
+            
             # Convert currency if target_currency is specified and different from transaction currency
             if target_currency and transaction.get('currency') != target_currency:
-                conversion = await CurrencyService.convert_currency(
-                    transaction['amount'],
-                    transaction['currency'],
-                    target_currency
-                )
-                
-                # Store original values
-                transaction['original_amount'] = transaction['amount']
-                transaction['original_currency'] = transaction['currency']
-                
-                # Update with converted values
-                transaction['amount'] = conversion['converted_amount']
-                transaction['currency'] = target_currency
+                try:
+                    conversion = await CurrencyService.convert_currency(
+                        transaction['amount'],
+                        transaction['currency'],
+                        target_currency
+                    )
+                    
+                    # Store original values
+                    transaction['original_amount'] = transaction['amount']
+                    transaction['original_currency'] = transaction['currency']
+                    
+                    # Update with converted values
+                    transaction['amount'] = conversion['converted_amount']
+                    transaction['currency'] = target_currency
+                except Exception as e:
+                    # If conversion fails, keep original values
+                    print(f"Currency conversion error: {e}")
             
             transactions.append(transaction)
             
@@ -70,21 +85,36 @@ class TransactionService:
             
         transaction = doc.to_dict()
         
+        # Ensure transaction has a currency field
+        if 'currency' not in transaction:
+            # Get default currency
+            default_currency = await CurrencyService.get_default_currency()
+            transaction['currency'] = default_currency['code']
+            
+            # Update the transaction in Firestore with the default currency
+            transactions_ref.document(transaction_id).update({
+                'currency': transaction['currency']
+            })
+        
         # Convert currency if target_currency is specified and different from transaction currency
         if target_currency and transaction.get('currency') != target_currency:
-            conversion = await CurrencyService.convert_currency(
-                transaction['amount'],
-                transaction['currency'],
-                target_currency
-            )
-            
-            # Store original values
-            transaction['original_amount'] = transaction['amount']
-            transaction['original_currency'] = transaction['currency']
-            
-            # Update with converted values
-            transaction['amount'] = conversion['converted_amount']
-            transaction['currency'] = target_currency
+            try:
+                conversion = await CurrencyService.convert_currency(
+                    transaction['amount'],
+                    transaction['currency'],
+                    target_currency
+                )
+                
+                # Store original values
+                transaction['original_amount'] = transaction['amount']
+                transaction['original_currency'] = transaction['currency']
+                
+                # Update with converted values
+                transaction['amount'] = conversion['converted_amount']
+                transaction['currency'] = target_currency
+            except Exception as e:
+                # If conversion fails, keep original values
+                print(f"Currency conversion error: {e}")
         
         return transaction
     
@@ -99,6 +129,11 @@ class TransactionService:
         
         # Add updated_at timestamp
         transaction_data['updated_at'] = datetime.now().isoformat()
+        
+        # If currency is not specified, use the default currency
+        if 'currency' not in transaction_data:
+            default_currency = await CurrencyService.get_default_currency()
+            transaction_data['currency'] = default_currency['code']
         
         # Update in Firestore
         transaction_ref.update(transaction_data)
@@ -129,21 +164,36 @@ class TransactionService:
         for doc in docs:
             transaction = doc.to_dict()
             
+            # Ensure transaction has a currency field
+            if 'currency' not in transaction:
+                # Get default currency
+                default_currency = await CurrencyService.get_default_currency()
+                transaction['currency'] = default_currency['code']
+                
+                # Update the transaction in Firestore with the default currency
+                transactions_ref.document(transaction['id']).update({
+                    'currency': transaction['currency']
+                })
+            
             # Convert currency if target_currency is specified and different from transaction currency
             if target_currency and transaction.get('currency') != target_currency:
-                conversion = await CurrencyService.convert_currency(
-                    transaction['amount'],
-                    transaction['currency'],
-                    target_currency
-                )
-                
-                # Store original values
-                transaction['original_amount'] = transaction['amount']
-                transaction['original_currency'] = transaction['currency']
-                
-                # Update with converted values
-                transaction['amount'] = conversion['converted_amount']
-                transaction['currency'] = target_currency
+                try:
+                    conversion = await CurrencyService.convert_currency(
+                        transaction['amount'],
+                        transaction['currency'],
+                        target_currency
+                    )
+                    
+                    # Store original values
+                    transaction['original_amount'] = transaction['amount']
+                    transaction['original_currency'] = transaction['currency']
+                    
+                    # Update with converted values
+                    transaction['amount'] = conversion['converted_amount']
+                    transaction['currency'] = target_currency
+                except Exception as e:
+                    # If conversion fails, keep original values
+                    print(f"Currency conversion error: {e}")
             
             transactions.append(transaction)
             
