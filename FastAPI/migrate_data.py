@@ -6,9 +6,12 @@ import asyncio
 from sqlalchemy.orm import Session
 from database import SessionLocal, engine
 import models
-from firebase_config import transactions_ref
+from app.core.config import db
 import uuid
 from datetime import datetime
+
+# Collection references
+transactions_ref = db.collection('transactions')
 
 def get_db():
     db = SessionLocal()

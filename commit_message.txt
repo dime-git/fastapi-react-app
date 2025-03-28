@@ -1,0 +1,22 @@
+Refactor: Migrate to clean architecture structure
+
+This commit implements a clean architecture approach to improve code organization and maintainability:
+
+- Create modular structure with separated concerns:
+  - API layer (routes, dependencies)
+  - Service layer (business logic)
+  - Models layer (data structures)
+  - Core configuration
+  - Utilities
+
+- Move Firebase integration to appropriate modules:
+  - Config moved to core/config.py
+  - Database operations moved to services/transaction_service.py
+  - Formatting utilities moved to utils/formatting.py
+
+- Update dependency paths and imports
+- Add application factory pattern in app/main.py
+- Update root main.py to use the new structure
+- Update migrate_data.py to work with new structure
+
+This restructuring follows best practices for FastAPI applications and provides better separation of concerns, making the codebase more maintainable and testable. 

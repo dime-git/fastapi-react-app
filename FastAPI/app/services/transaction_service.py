@@ -1,11 +1,14 @@
-from firebase_config import db, transactions_ref
-from google.cloud.firestore_v1.base_query import FieldFilter
 from typing import List, Optional, Dict, Any
 import uuid
 from datetime import datetime
+from firebase_admin import firestore
+from app.core.config import db
 
-class FirebaseTransaction:
-    """Data access class for transactions in Firebase"""
+# Collection references
+transactions_ref = db.collection('transactions')
+
+class TransactionService:
+    """Service for managing transactions in Firebase"""
     
     @staticmethod
     async def create(transaction_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -77,7 +80,7 @@ class FirebaseTransaction:
     @staticmethod
     async def get_by_category(category: str) -> List[Dict[str, Any]]:
         """Get transactions by category"""
-        query = transactions_ref.where(filter=FieldFilter("category", "==", category))
+        query = transactions_ref.where(filter=firestore.FieldFilter("category", "==", category))
         docs = query.stream()
         
         transactions = []
