@@ -13,73 +13,111 @@ router = APIRouter(
 @router.post("/", response_model=RecurringTransactionModel)
 async def create_recurring_transaction(transaction: RecurringTransactionBase):
     """Create a new recurring transaction"""
-    # Format the category before saving
-    transaction_dict = transaction.model_dump()
-    transaction_dict["category"] = format_category(transaction_dict["category"])
-    
-    # Validate based on frequency type
-    validate_frequency_params(transaction_dict)
-    
-    # Create recurring transaction
-    result = await RecurringTransactionService.create(transaction_dict)
-    return result
+    try:
+        # Format the category before saving
+        transaction_dict = transaction.model_dump()
+        transaction_dict["category"] = format_category(transaction_dict["category"])
+        
+        # Validate based on frequency type
+        validate_frequency_params(transaction_dict)
+        
+        # Create recurring transaction
+        result = await RecurringTransactionService.create(transaction_dict)
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error creating recurring transaction: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create recurring transaction: {str(e)}")
 
 @router.get("/", response_model=List[RecurringTransactionModel])
 async def get_all_recurring_transactions():
     """Get all recurring transactions"""
-    return await RecurringTransactionService.get_all()
+    try:
+        transactions = await RecurringTransactionService.get_all()
+        return transactions
+    except Exception as e:
+        print(f"Error getting recurring transactions: {e}")
+        # Return empty list on error
+        return []
 
 @router.get("/{transaction_id}", response_model=RecurringTransactionModel)
 async def get_recurring_transaction(transaction_id: str):
     """Get a recurring transaction by ID"""
-    transaction = await RecurringTransactionService.get_by_id(transaction_id)
-    if not transaction:
-        raise HTTPException(status_code=404, detail=f"Recurring transaction with ID {transaction_id} not found")
-    return transaction
+    try:
+        transaction = await RecurringTransactionService.get_by_id(transaction_id)
+        if not transaction:
+            raise HTTPException(status_code=404, detail=f"Recurring transaction with ID {transaction_id} not found")
+        return transaction
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error getting recurring transaction: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get recurring transaction: {str(e)}")
 
 @router.put("/{transaction_id}", response_model=RecurringTransactionModel)
 async def update_recurring_transaction(transaction_id: str, transaction_update: RecurringTransactionBase):
     """Update a recurring transaction"""
-    # Check if transaction exists
-    existing_transaction = await RecurringTransactionService.get_by_id(transaction_id)
-    if not existing_transaction:
-        raise HTTPException(status_code=404, detail=f"Recurring transaction with ID {transaction_id} not found")
-    
-    # Format the category before saving
-    transaction_dict = transaction_update.model_dump()
-    transaction_dict["category"] = format_category(transaction_dict["category"])
-    
-    # Validate based on frequency type
-    validate_frequency_params(transaction_dict)
-    
-    # Update recurring transaction
-    result = await RecurringTransactionService.update(transaction_id, transaction_dict)
-    return result
+    try:
+        # Check if transaction exists
+        existing_transaction = await RecurringTransactionService.get_by_id(transaction_id)
+        if not existing_transaction:
+            raise HTTPException(status_code=404, detail=f"Recurring transaction with ID {transaction_id} not found")
+        
+        # Format the category before saving
+        transaction_dict = transaction_update.model_dump()
+        transaction_dict["category"] = format_category(transaction_dict["category"])
+        
+        # Validate based on frequency type
+        validate_frequency_params(transaction_dict)
+        
+        # Update recurring transaction
+        result = await RecurringTransactionService.update(transaction_id, transaction_dict)
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error updating recurring transaction: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to update recurring transaction: {str(e)}")
 
 @router.delete("/{transaction_id}", response_model=dict)
 async def delete_recurring_transaction(transaction_id: str):
     """Delete a recurring transaction"""
-    # Check if transaction exists
-    existing_transaction = await RecurringTransactionService.get_by_id(transaction_id)
-    if not existing_transaction:
-        raise HTTPException(status_code=404, detail=f"Recurring transaction with ID {transaction_id} not found")
-    
-    # Delete recurring transaction
-    result = await RecurringTransactionService.delete(transaction_id)
-    return {"success": result, "message": "Recurring transaction deleted successfully"}
+    try:
+        # Check if transaction exists
+        existing_transaction = await RecurringTransactionService.get_by_id(transaction_id)
+        if not existing_transaction:
+            raise HTTPException(status_code=404, detail=f"Recurring transaction with ID {transaction_id} not found")
+        
+        # Delete recurring transaction
+        result = await RecurringTransactionService.delete(transaction_id)
+        return {"success": result, "message": "Recurring transaction deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error deleting recurring transaction: {e}")
+        return {"success": False, "message": f"Error deleting recurring transaction: {str(e)}"}
 
 @router.post("/generate", response_model=Dict[str, Any])
 async def generate_transactions(background_tasks: BackgroundTasks):
     """Generate transactions from recurring transactions"""
-    # Run the generation process in the background
-    background_tasks.add_task(RecurringTransactionService.generate_transactions)
-    return {"status": "success", "message": "Transaction generation started in the background"}
+    try:
+        # Run the generation process in the background
+        background_tasks.add_task(RecurringTransactionService.generate_transactions)
+        return {"status": "success", "message": "Transaction generation started in the background"}
+    except Exception as e:
+        print(f"Error starting transaction generation: {e}")
+        return {"status": "error", "message": f"Failed to start transaction generation: {str(e)}"}
 
 @router.post("/generate-now", response_model=Dict[str, Any])
 async def generate_transactions_now():
     """Generate transactions from recurring transactions immediately"""
-    result = await RecurringTransactionService.generate_transactions()
-    return result
+    try:
+        result = await RecurringTransactionService.generate_transactions()
+        return result
+    except Exception as e:
+        print(f"Error generating transactions: {e}")
+        return {"status": "error", "message": f"Failed to generate transactions: {str(e)}"}
 
 def validate_frequency_params(transaction_dict: Dict[str, Any]):
     """Validate the params needed for each frequency type"""

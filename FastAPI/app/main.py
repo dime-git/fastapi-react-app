@@ -41,7 +41,13 @@ def create_app() -> FastAPI:
     @app.on_event("startup")
     async def startup_event():
         """Initialize default currencies and exchange rates on startup"""
-        await CurrencyService.initialize_currencies()
+        try:
+            await CurrencyService.initialize_currencies()
+            print("Currency service initialized successfully")
+        except Exception as e:
+            print(f"Error initializing currency service: {e}")
+            print("API will continue to work, but currency service might be limited")
+            # Allow the app to continue even if currency initialization fails
     
     return app
 
