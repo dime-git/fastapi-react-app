@@ -6,7 +6,22 @@ import {
   ListGroup,
   ProgressBar,
   Alert,
+  Row,
+  Col,
+  Badge,
+  Container,
 } from 'react-bootstrap';
+import {
+  FaMoneyBillWave,
+  FaCalendarAlt,
+  FaPlusCircle,
+  FaTrash,
+  FaChartPie,
+  FaList,
+  FaExclamationTriangle,
+  FaCheckCircle,
+  FaTimesCircle,
+} from 'react-icons/fa';
 import axios from 'axios';
 
 const API_URL = 'http://localhost:8000/api';
@@ -131,138 +146,266 @@ const BudgetManager = ({ transactions, categories, onBudgetChange }) => {
     return 'success';
   };
 
+  const getStatusIcon = (status, percentage) => {
+    if (percentage >= 100) return <FaTimesCircle className='text-danger' />;
+    if (status === 'approaching')
+      return <FaExclamationTriangle className='text-warning' />;
+    return <FaCheckCircle className='text-success' />;
+  };
+
   return (
-    <div className='budget-manager'>
-      <Card className='mb-4'>
-        <Card.Header>
-          <h4>Budget Manager</h4>
-        </Card.Header>
-        <Card.Body>
-          {error && <Alert variant='danger'>{error}</Alert>}
-          {success && <Alert variant='success'>{success}</Alert>}
+    <Container className='budget-manager py-4'>
+      <Row>
+        <Col lg={12} className='mb-4'>
+          <div className='d-flex justify-content-between align-items-center mb-4'>
+            <h2 className='mb-0'>
+              <FaChartPie className='me-2' />
+              Budget Manager
+            </h2>
+          </div>
+        </Col>
+      </Row>
 
-          <Form onSubmit={handleSubmit}>
-            <Form.Group className='mb-3'>
-              <Form.Label>Category</Form.Label>
-              <Form.Select
-                name='category'
-                value={newBudget.category}
-                onChange={handleInputChange}
-                required
-              >
-                <option value=''>Select a category</option>
-                {categories
-                  .filter((cat) => !cat.isIncome)
-                  .map((category) => (
-                    <option key={category.name} value={category.name}>
-                      {category.name}
-                    </option>
-                  ))}
-              </Form.Select>
-            </Form.Group>
+      <Row>
+        <Col lg={4} className='mb-4'>
+          <Card className='border-0 shadow-sm h-100'>
+            <Card.Header className='bg-primary text-white'>
+              <div className='d-flex align-items-center'>
+                <FaPlusCircle className='me-2' />
+                <h5 className='mb-0'>Create New Budget</h5>
+              </div>
+            </Card.Header>
+            <Card.Body>
+              {error && (
+                <Alert
+                  variant='danger'
+                  className='py-2 mb-3 d-flex align-items-center'
+                >
+                  <FaExclamationTriangle className='me-2' /> {error}
+                </Alert>
+              )}
 
-            <Form.Group className='mb-3'>
-              <Form.Label>Budget Amount</Form.Label>
-              <Form.Control
-                type='number'
-                name='amount'
-                value={newBudget.amount}
-                onChange={handleInputChange}
-                placeholder='Enter amount'
-                min='0.01'
-                step='0.01'
-                required
-              />
-            </Form.Group>
+              {success && (
+                <Alert
+                  variant='success'
+                  className='py-2 mb-3 d-flex align-items-center'
+                >
+                  <FaCheckCircle className='me-2' /> {success}
+                </Alert>
+              )}
 
-            <Form.Group className='mb-3'>
-              <Form.Label>Period</Form.Label>
-              <Form.Select
-                name='period'
-                value={newBudget.period}
-                onChange={handleInputChange}
-              >
-                <option value='monthly'>Monthly</option>
-                <option value='weekly'>Weekly</option>
-                <option value='yearly'>Yearly</option>
-              </Form.Select>
-            </Form.Group>
+              <Form onSubmit={handleSubmit}>
+                <Form.Group className='mb-3'>
+                  <Form.Label>
+                    <FaList className='me-1' /> Category
+                  </Form.Label>
+                  <Form.Select
+                    name='category'
+                    value={newBudget.category}
+                    onChange={handleInputChange}
+                    required
+                    className='border-0 shadow-sm'
+                  >
+                    <option value=''>Select a category</option>
+                    {categories
+                      .filter((cat) => !cat.isIncome)
+                      .map((category) => (
+                        <option key={category.name} value={category.name}>
+                          {category.name}
+                        </option>
+                      ))}
+                  </Form.Select>
+                </Form.Group>
 
-            <Button variant='primary' type='submit'>
-              Add Budget
-            </Button>
-          </Form>
-        </Card.Body>
-      </Card>
+                <Form.Group className='mb-3'>
+                  <Form.Label>
+                    <FaMoneyBillWave className='me-1' /> Budget Amount
+                  </Form.Label>
+                  <Form.Control
+                    type='number'
+                    name='amount'
+                    value={newBudget.amount}
+                    onChange={handleInputChange}
+                    placeholder='Enter amount'
+                    min='0.01'
+                    step='0.01'
+                    required
+                    className='border-0 shadow-sm'
+                  />
+                </Form.Group>
 
-      <Card>
-        <Card.Header>
-          <h4>Current Budgets</h4>
-        </Card.Header>
-        <Card.Body>
-          {loading ? (
-            <p>Loading budgets...</p>
-          ) : budgets.length === 0 ? (
-            <p>No budgets set. Create your first budget above.</p>
-          ) : (
-            <ListGroup>
-              {budgets.map((budget) => {
-                const status = budgetStatuses[budget.category] || null;
-                const percentage = status ? status.percentage_used : 0;
+                <Form.Group className='mb-3'>
+                  <Form.Label>
+                    <FaCalendarAlt className='me-1' /> Period
+                  </Form.Label>
+                  <Form.Select
+                    name='period'
+                    value={newBudget.period}
+                    onChange={handleInputChange}
+                    className='border-0 shadow-sm'
+                  >
+                    <option value='monthly'>Monthly</option>
+                    <option value='weekly'>Weekly</option>
+                    <option value='yearly'>Yearly</option>
+                  </Form.Select>
+                </Form.Group>
 
-                return (
-                  <ListGroup.Item key={budget.id} className='mb-3'>
-                    <div className='d-flex justify-content-between align-items-center mb-1'>
-                      <h5>{budget.category}</h5>
-                      <Button
-                        variant='danger'
-                        size='sm'
-                        onClick={() => handleDelete(budget.id)}
+                <Button variant='primary' type='submit' className='w-100'>
+                  <FaPlusCircle className='me-2' /> Add Budget
+                </Button>
+              </Form>
+            </Card.Body>
+          </Card>
+        </Col>
+
+        <Col lg={8}>
+          <Card className='border-0 shadow-sm'>
+            <Card.Header className='bg-info text-white'>
+              <div className='d-flex align-items-center'>
+                <FaList className='me-2' />
+                <h5 className='mb-0'>Current Budgets</h5>
+              </div>
+            </Card.Header>
+            <Card.Body>
+              {loading ? (
+                <div className='text-center py-5'>
+                  <div className='spinner-border text-primary' role='status'>
+                    <span className='visually-hidden'>Loading...</span>
+                  </div>
+                  <p className='mt-3'>Loading budgets...</p>
+                </div>
+              ) : budgets.length === 0 ? (
+                <div className='text-center py-5 text-muted'>
+                  <FaChartPie className='display-1 mb-3 opacity-25' />
+                  <p>
+                    No budgets set. Create your first budget to start tracking
+                    spending.
+                  </p>
+                </div>
+              ) : (
+                <ListGroup variant='flush'>
+                  {budgets.map((budget) => {
+                    const status = budgetStatuses[budget.category] || null;
+                    const percentage = status ? status.percentage_used : 0;
+                    const periodText =
+                      budget.period.charAt(0).toUpperCase() +
+                      budget.period.slice(1);
+
+                    return (
+                      <ListGroup.Item
+                        key={budget.id}
+                        className='mb-3 border-0 shadow-sm'
                       >
-                        Delete
-                      </Button>
-                    </div>
-
-                    <p>
-                      Budget: ${budget.amount.toFixed(2)} ({budget.period})
-                    </p>
-
-                    {status && (
-                      <>
-                        <div className='d-flex justify-content-between'>
-                          <span>Spent: ${status.spent_amount.toFixed(2)}</span>
-                          <span>
-                            Remaining: ${status.remaining_amount.toFixed(2)}
-                          </span>
+                        <div className='d-flex justify-content-between align-items-center mb-2'>
+                          <div className='d-flex align-items-center'>
+                            {status && getStatusIcon(status.status, percentage)}
+                            <h5 className='mb-0 ms-2'>{budget.category}</h5>
+                            <Badge bg='secondary' className='ms-2'>
+                              {periodText}
+                            </Badge>
+                          </div>
+                          <Button
+                            variant='outline-danger'
+                            size='sm'
+                            onClick={() => handleDelete(budget.id)}
+                          >
+                            <FaTrash />
+                          </Button>
                         </div>
 
-                        <ProgressBar
-                          now={Math.min(percentage, 100)}
-                          variant={getVariant(percentage)}
-                          className='mt-2'
-                        />
+                        <Row className='mb-2'>
+                          <Col xs={4}>
+                            <div className='small text-muted mb-1'>Budget:</div>
+                            <div className='fw-bold'>
+                              ${budget.amount.toFixed(2)}
+                            </div>
+                          </Col>
+                          {status && (
+                            <>
+                              <Col xs={4}>
+                                <div className='small text-muted mb-1'>
+                                  Spent:
+                                </div>
+                                <div
+                                  className={
+                                    percentage >= 100
+                                      ? 'fw-bold text-danger'
+                                      : 'fw-bold'
+                                  }
+                                >
+                                  ${status.spent_amount.toFixed(2)}
+                                </div>
+                              </Col>
+                              <Col xs={4}>
+                                <div className='small text-muted mb-1'>
+                                  Remaining:
+                                </div>
+                                <div className='fw-bold text-success'>
+                                  ${status.remaining_amount.toFixed(2)}
+                                </div>
+                              </Col>
+                            </>
+                          )}
+                        </Row>
 
-                        {status.status === 'approaching' && (
-                          <Alert variant='warning' className='mt-2 py-1'>
-                            <small>You're approaching your budget limit</small>
-                          </Alert>
-                        )}
+                        {status && (
+                          <>
+                            <div className='d-flex justify-content-between mb-1'>
+                              <small>0%</small>
+                              <small>
+                                <span className='fw-bold'>
+                                  {Math.min(percentage, 100).toFixed(0)}%
+                                </span>{' '}
+                                used
+                              </small>
+                              <small>100%</small>
+                            </div>
 
-                        {status.status === 'exceeded' && (
-                          <Alert variant='danger' className='mt-2 py-1'>
-                            <small>You've exceeded your budget limit</small>
-                          </Alert>
+                            <ProgressBar
+                              now={Math.min(percentage, 100)}
+                              variant={getVariant(percentage)}
+                              className='mb-2'
+                              style={{ height: '8px' }}
+                            />
+
+                            {percentage >= 100 && (
+                              <Alert
+                                variant='danger'
+                                className='mt-2 py-2 d-flex align-items-center'
+                              >
+                                <FaExclamationTriangle className='me-2' />
+                                <div className='small'>
+                                  You've exceeded your budget limit for{' '}
+                                  {budget.category}
+                                </div>
+                              </Alert>
+                            )}
+
+                            {status.status === 'approaching' &&
+                              percentage < 100 && (
+                                <Alert
+                                  variant='warning'
+                                  className='mt-2 py-2 d-flex align-items-center'
+                                >
+                                  <FaExclamationTriangle className='me-2' />
+                                  <div className='small'>
+                                    You're approaching your budget limit for{' '}
+                                    {budget.category}
+                                  </div>
+                                </Alert>
+                              )}
+                          </>
                         )}
-                      </>
-                    )}
-                  </ListGroup.Item>
-                );
-              })}
-            </ListGroup>
-          )}
-        </Card.Body>
-      </Card>
-    </div>
+                      </ListGroup.Item>
+                    );
+                  })}
+                </ListGroup>
+              )}
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+    </Container>
   );
 };
 

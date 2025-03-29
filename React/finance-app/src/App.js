@@ -1,11 +1,499 @@
 import React, { useState, useEffect } from 'react';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Link,
+  useLocation,
+} from 'react-router-dom';
 import api from './api';
 import TransactionItem from './components/TransactionItem';
 import Dashboard from './components/Dashboard';
 import BudgetManager from './components/BudgetManager';
 import RecurringTransactions from './components/RecurringTransactions';
 import CurrencyConverter from './components/CurrencyConverter';
+import GoalsTracker from './components/GoalsTracker';
 import './App.css';
+import {
+  Navbar,
+  Nav,
+  Container,
+  Row,
+  Col,
+  Form,
+  Button,
+  Card,
+  Tabs,
+  Tab,
+  Badge,
+} from 'react-bootstrap';
+import {
+  FaChartLine,
+  FaWallet,
+  FaCalendarAlt,
+  FaExchangeAlt,
+  FaFlagCheckered,
+  FaPlus,
+  FaFilter,
+  FaDollarSign,
+  FaRegStar,
+  FaSpinner,
+  FaChartPie,
+} from 'react-icons/fa';
+
+const Layout = ({
+  children,
+  transactions,
+  displayCurrency,
+  currencySymbol,
+  formData,
+  handleInputChange,
+  handleSubmit,
+  isLoading,
+  categories,
+  handleDisplayCurrencyChange,
+}) => {
+  const [showAddTransaction, setShowAddTransaction] = useState(false);
+  const location = useLocation();
+
+  const totalIncome = transactions
+    .filter((t) => t.is_income)
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const totalExpenses = transactions
+    .filter((t) => !t.is_income)
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const balance = totalIncome - totalExpenses;
+
+  // Get currency options
+  const currencyOptions = ['USD', 'EUR', 'MKD'].map((currency) => (
+    <option key={currency} value={currency}>
+      {currency}
+    </option>
+  ));
+
+  return (
+    <div className='finance-app'>
+      <Navbar expand='lg' bg='dark' variant='dark' className='mb-4'>
+        <Container>
+          <Navbar.Brand as={Link} to='/'>
+            <FaDollarSign className='me-2' />
+            Finance Dashboard
+          </Navbar.Brand>
+          <Navbar.Toggle aria-controls='basic-navbar-nav' />
+          <Navbar.Collapse id='basic-navbar-nav'>
+            <Nav className='ms-auto'>
+              <Nav.Link
+                as={Link}
+                to='/'
+                className={`px-3 ${location.pathname === '/' ? 'active' : ''}`}
+              >
+                <FaChartLine className='me-1' /> Dashboard
+              </Nav.Link>
+              <Nav.Link
+                as={Link}
+                to='/budgets'
+                className={`px-3 ${
+                  location.pathname === '/budgets' ? 'active' : ''
+                }`}
+              >
+                <FaWallet className='me-1' /> Budgets
+              </Nav.Link>
+              <Nav.Link
+                as={Link}
+                to='/transactions'
+                className={`px-3 ${
+                  location.pathname === '/transactions' ? 'active' : ''
+                }`}
+              >
+                <FaRegStar className='me-1' /> Transactions
+              </Nav.Link>
+              <Nav.Link
+                as={Link}
+                to='/recurring'
+                className={`px-3 ${
+                  location.pathname === '/recurring' ? 'active' : ''
+                }`}
+              >
+                <FaCalendarAlt className='me-1' /> Recurring
+              </Nav.Link>
+              <Nav.Link
+                as={Link}
+                to='/currency'
+                className={`px-3 ${
+                  location.pathname === '/currency' ? 'active' : ''
+                }`}
+              >
+                <FaExchangeAlt className='me-1' /> Currency
+              </Nav.Link>
+              <Nav.Link
+                as={Link}
+                to='/goals'
+                className={`px-3 ${
+                  location.pathname === '/goals' ? 'active' : ''
+                }`}
+              >
+                <FaFlagCheckered className='me-1' /> Goals
+              </Nav.Link>
+            </Nav>
+            <Button
+              variant='success'
+              className='ms-3'
+              onClick={() => setShowAddTransaction(!showAddTransaction)}
+            >
+              <FaPlus className='me-1' /> Add Transaction
+            </Button>
+          </Navbar.Collapse>
+        </Container>
+      </Navbar>
+
+      <Container fluid>
+        <Row className='mb-4'>
+          <Col>
+            <div className='finance-summary d-flex justify-content-around p-4 bg-white rounded shadow'>
+              <div className='text-center'>
+                <h6 className='text-muted mb-2'>Income</h6>
+                <h3 className='text-success fw-bold'>
+                  {currencySymbol}
+                  {totalIncome.toFixed(2)}
+                </h3>
+                <small className='text-muted'>{displayCurrency}</small>
+              </div>
+              <div className='text-center'>
+                <h6 className='text-muted mb-2'>Expenses</h6>
+                <h3 className='text-danger fw-bold'>
+                  {currencySymbol}
+                  {totalExpenses.toFixed(2)}
+                </h3>
+                <small className='text-muted'>{displayCurrency}</small>
+              </div>
+              <div className='text-center'>
+                <h6 className='text-muted mb-2'>Balance</h6>
+                <h3
+                  className={
+                    balance >= 0
+                      ? 'text-primary fw-bold'
+                      : 'text-danger fw-bold'
+                  }
+                >
+                  {currencySymbol}
+                  {balance.toFixed(2)}
+                </h3>
+                <small className='text-muted'>{displayCurrency}</small>
+              </div>
+              <div className='text-center'>
+                <h6 className='text-muted mb-2'>Currency</h6>
+                <Form.Select
+                  className='form-select-sm'
+                  value={displayCurrency}
+                  onChange={(e) => handleDisplayCurrencyChange(e.target.value)}
+                >
+                  {currencyOptions}
+                </Form.Select>
+                <small className='text-muted'>Display Currency</small>
+              </div>
+            </div>
+          </Col>
+        </Row>
+
+        {showAddTransaction && (
+          <Row className='mb-4'>
+            <Col>
+              <Card className='border-0 shadow'>
+                <Card.Header className='bg-success text-white'>
+                  <h5 className='mb-0'>
+                    <FaPlus className='me-2' /> Add New Transaction
+                  </h5>
+                </Card.Header>
+                <Card.Body>
+                  <Form onSubmit={handleSubmit}>
+                    <Row>
+                      <Col md={4}>
+                        <Form.Group className='mb-3'>
+                          <Form.Label>Amount</Form.Label>
+                          <Form.Control
+                            type='number'
+                            name='amount'
+                            value={formData.amount}
+                            onChange={handleInputChange}
+                            placeholder='Enter amount'
+                            required
+                          />
+                        </Form.Group>
+                      </Col>
+                      <Col md={4}>
+                        <Form.Group className='mb-3'>
+                          <Form.Label>Category</Form.Label>
+                          <Form.Control
+                            type='text'
+                            name='category'
+                            value={formData.category}
+                            onChange={handleInputChange}
+                            placeholder='Category'
+                            required
+                          />
+                        </Form.Group>
+                      </Col>
+                      <Col md={4}>
+                        <Form.Group className='mb-3'>
+                          <Form.Label>Date</Form.Label>
+                          <Form.Control
+                            type='date'
+                            name='date'
+                            value={formData.date}
+                            onChange={handleInputChange}
+                          />
+                        </Form.Group>
+                      </Col>
+                    </Row>
+                    <Row>
+                      <Col md={8}>
+                        <Form.Group className='mb-3'>
+                          <Form.Label>Description</Form.Label>
+                          <Form.Control
+                            type='text'
+                            name='description'
+                            value={formData.description}
+                            onChange={handleInputChange}
+                            placeholder='Description'
+                            required
+                          />
+                        </Form.Group>
+                      </Col>
+                      <Col md={2}>
+                        <Form.Group className='mb-3'>
+                          <Form.Label>Currency</Form.Label>
+                          <Form.Select
+                            name='currency'
+                            value={formData.currency}
+                            onChange={handleInputChange}
+                          >
+                            {currencyOptions}
+                          </Form.Select>
+                        </Form.Group>
+                      </Col>
+                      <Col md={2}>
+                        <Form.Group className='mb-3 pt-1'>
+                          <Form.Label>&nbsp;</Form.Label>
+                          <Form.Check
+                            type='checkbox'
+                            id='is-income'
+                            label='This is income'
+                            name='is_income'
+                            checked={formData.is_income}
+                            onChange={handleInputChange}
+                            className='mt-2'
+                          />
+                        </Form.Group>
+                      </Col>
+                    </Row>
+                    <div className='text-end'>
+                      <Button
+                        variant='outline-secondary'
+                        className='me-2'
+                        onClick={() => setShowAddTransaction(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        variant='success'
+                        type='submit'
+                        disabled={isLoading}
+                      >
+                        {isLoading ? (
+                          <>
+                            <FaSpinner className='fa-spin me-1' /> Processing...
+                          </>
+                        ) : (
+                          'Add Transaction'
+                        )}
+                      </Button>
+                    </div>
+                  </Form>
+                </Card.Body>
+              </Card>
+            </Col>
+          </Row>
+        )}
+
+        <div className='main-content'>{children}</div>
+      </Container>
+
+      <footer className='bg-dark text-white text-center py-4 mt-5'>
+        <Container>
+          <p className='mb-0'>
+            Finance Dashboard &copy; {new Date().getFullYear()}
+          </p>
+        </Container>
+      </footer>
+    </div>
+  );
+};
+
+// Dashboard Page Component
+const DashboardPage = ({ transactions }) => {
+  return (
+    <section className='mb-5'>
+      <Row className='mb-4'>
+        <Col>
+          <h2 className='section-title'>
+            <FaChartLine className='me-2' />
+            Dashboard
+          </h2>
+          <p className='text-muted'>
+            Overview of your financial status and activity
+          </p>
+        </Col>
+      </Row>
+      <Dashboard transactions={transactions} />
+    </section>
+  );
+};
+
+// Budgets Page Component
+const BudgetsPage = ({ transactions, categories }) => {
+  return (
+    <section className='mb-5'>
+      <Row className='mb-4'>
+        <Col>
+          <h2 className='section-title'>
+            <FaWallet className='me-2' />
+            Budget Management
+          </h2>
+          <p className='text-muted'>
+            Track and manage your spending limits by category
+          </p>
+        </Col>
+      </Row>
+      <BudgetManager transactions={transactions} categories={categories} />
+    </section>
+  );
+};
+
+// Transactions Page Component
+const TransactionsPage = ({ transactions, fetchTransactions }) => {
+  return (
+    <section className='mb-5'>
+      <Row className='mb-4'>
+        <Col>
+          <h2 className='section-title'>
+            <FaRegStar className='me-2' />
+            Transactions
+          </h2>
+          <p className='text-muted'>View and manage your income and expenses</p>
+        </Col>
+      </Row>
+      <div className='transactions-list mt-4'>
+        <Row>
+          <Col>
+            <Card className='border-0 shadow'>
+              <Card.Header className='bg-primary text-white d-flex justify-content-between align-items-center'>
+                <h5 className='mb-0'>
+                  <FaRegStar className='me-2' /> Transactions History
+                </h5>
+                <div>
+                  <Badge bg='light' text='dark' className='p-2'>
+                    <FaFilter className='me-1' /> {transactions.length}{' '}
+                    Transactions
+                  </Badge>
+                </div>
+              </Card.Header>
+              <Card.Body className='p-0'>
+                {transactions.length === 0 ? (
+                  <div className='text-center py-5'>
+                    <FaChartPie
+                      className='text-muted mb-3'
+                      style={{ fontSize: '3rem', opacity: '0.2' }}
+                    />
+                    <p className='text-muted'>
+                      No transactions found. Add your first transaction to get
+                      started.
+                    </p>
+                  </div>
+                ) : (
+                  <div className='transaction-items p-3'>
+                    {transactions
+                      .sort((a, b) => new Date(b.date) - new Date(a.date))
+                      .map((transaction) => (
+                        <TransactionItem
+                          key={transaction.id}
+                          transaction={transaction}
+                          onTransactionUpdated={fetchTransactions}
+                        />
+                      ))}
+                  </div>
+                )}
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
+      </div>
+    </section>
+  );
+};
+
+// Recurring Transactions Page Component
+const RecurringPage = ({ categories, fetchTransactions }) => {
+  return (
+    <section className='mb-5'>
+      <Row className='mb-4'>
+        <Col>
+          <h2 className='section-title'>
+            <FaCalendarAlt className='me-2' />
+            Recurring Transactions
+          </h2>
+          <p className='text-muted'>
+            Set up automated regular payments and income
+          </p>
+        </Col>
+      </Row>
+      <RecurringTransactions
+        categories={categories}
+        onGenerateTransactions={fetchTransactions}
+      />
+    </section>
+  );
+};
+
+// Currency Converter Page Component
+const CurrencyPage = ({ defaultCurrency, handleCurrencyChange }) => {
+  return (
+    <section className='mb-5'>
+      <Row className='mb-4'>
+        <Col>
+          <h2 className='section-title'>
+            <FaExchangeAlt className='me-2' />
+            Currency Converter
+          </h2>
+          <p className='text-muted'>Convert between different currencies</p>
+        </Col>
+      </Row>
+      <CurrencyConverter
+        defaultCurrency={defaultCurrency}
+        onCurrencyChange={handleCurrencyChange}
+      />
+    </section>
+  );
+};
+
+// Goals Page Component
+const GoalsPage = ({ displayCurrency }) => {
+  return (
+    <section className='mb-5'>
+      <Row className='mb-4'>
+        <Col>
+          <h2 className='section-title'>
+            <FaFlagCheckered className='me-2' />
+            Financial Goals
+          </h2>
+          <p className='text-muted'>Set and track your financial targets</p>
+        </Col>
+      </Row>
+      <GoalsTracker displayCurrency={displayCurrency} />
+    </section>
+  );
+};
 
 const App = () => {
   const [transactions, setTransactions] = useState([]);
@@ -14,13 +502,11 @@ const App = () => {
     category: '',
     description: '',
     is_income: false,
-    date: '',
+    date: new Date().toISOString().split('T')[0],
     currency: 'USD', // Default currency
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [viewMode, setViewMode] = useState('list');
-  const [activeTab, setActiveTab] = useState('transactions'); // 'transactions', 'dashboard', 'budgets', 'recurring', 'currency'
   const [categories, setCategories] = useState([]);
   const [defaultCurrency, setDefaultCurrency] = useState('USD');
   const [displayCurrency, setDisplayCurrency] = useState('USD'); // For display only
@@ -95,7 +581,7 @@ const App = () => {
         category: '',
         description: '',
         is_income: false,
-        date: '',
+        date: new Date().toISOString().split('T')[0],
         currency: defaultCurrency,
       });
     } catch (error) {
@@ -126,17 +612,6 @@ const App = () => {
     setDisplayCurrency(currency);
   };
 
-  // Calculate summary statistics
-  const totalIncome = transactions
-    .filter((t) => t.is_income)
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const totalExpenses = transactions
-    .filter((t) => !t.is_income)
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const balance = totalIncome - totalExpenses;
-
   // Find currency symbol for display
   const getCurrencySymbol = (currencyCode) => {
     switch (currencyCode) {
@@ -152,475 +627,69 @@ const App = () => {
 
   const currencySymbol = getCurrencySymbol(displayCurrency);
 
+  const layoutProps = {
+    transactions,
+    displayCurrency,
+    currencySymbol,
+    formData,
+    handleInputChange,
+    handleSubmit,
+    isLoading,
+    categories,
+    handleDisplayCurrencyChange,
+  };
+
   return (
-    <div>
-      <nav className='bg-primary text-white p-4'>
-        <div className='container'>
-          <div className='d-flex justify-content-between align-items-center'>
-            <a href='#' className='navbar-brand'>
-              Finance App
-            </a>
-            <div>
-              <button
-                className={`btn ${
-                  activeTab === 'transactions'
-                    ? 'btn-light'
-                    : 'btn-outline-light'
-                } me-2`}
-                onClick={() => setActiveTab('transactions')}
-              >
-                Transactions
-              </button>
-              <button
-                className={`btn ${
-                  activeTab === 'recurring' ? 'btn-light' : 'btn-outline-light'
-                } me-2`}
-                onClick={() => setActiveTab('recurring')}
-              >
-                Recurring
-              </button>
-              <button
-                className={`btn ${
-                  activeTab === 'budgets' ? 'btn-light' : 'btn-outline-light'
-                } me-2`}
-                onClick={() => setActiveTab('budgets')}
-              >
-                Budgets
-              </button>
-              <button
-                className={`btn ${
-                  activeTab === 'dashboard' ? 'btn-light' : 'btn-outline-light'
-                } me-2`}
-                onClick={() => setActiveTab('dashboard')}
-              >
-                Dashboard
-              </button>
-              <button
-                className={`btn ${
-                  activeTab === 'currency' ? 'btn-light' : 'btn-outline-light'
-                }`}
-                onClick={() => setActiveTab('currency')}
-              >
-                Currency
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      <div className='container mt-4'>
-        {/* Summary Cards */}
-        <div className='row mb-4'>
-          <div className='col-md-4'>
-            <div className='card bg-success text-white'>
-              <div className='card-body'>
-                <h5 className='card-title'>Income</h5>
-                <h3 className='card-text'>
-                  {currencySymbol}
-                  {totalIncome.toFixed(2)}
-                </h3>
-                <small>{displayCurrency}</small>
-              </div>
-            </div>
-          </div>
-          <div className='col-md-4'>
-            <div className='card bg-danger text-white'>
-              <div className='card-body'>
-                <h5 className='card-title'>Expenses</h5>
-                <h3 className='card-text'>
-                  {currencySymbol}
-                  {totalExpenses.toFixed(2)}
-                </h3>
-                <small>{displayCurrency}</small>
-              </div>
-            </div>
-          </div>
-          <div className='col-md-4'>
-            <div className='card bg-primary text-white'>
-              <div className='card-body'>
-                <h5 className='card-title'>Balance</h5>
-                <h3 className='card-text'>
-                  {currencySymbol}
-                  {balance.toFixed(2)}
-                </h3>
-                <small>{displayCurrency}</small>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Display Currency Selector */}
-        <div className='mb-4'>
-          <div className='d-flex align-items-center'>
-            <span className='me-3'>Display values in:</span>
-            <div className='btn-group'>
-              <button
-                className={`btn ${
-                  displayCurrency === 'USD'
-                    ? 'btn-primary'
-                    : 'btn-outline-primary'
-                }`}
-                onClick={() => handleDisplayCurrencyChange('USD')}
-              >
-                USD ($)
-              </button>
-              <button
-                className={`btn ${
-                  displayCurrency === 'EUR'
-                    ? 'btn-primary'
-                    : 'btn-outline-primary'
-                }`}
-                onClick={() => handleDisplayCurrencyChange('EUR')}
-              >
-                EUR (€)
-              </button>
-              <button
-                className={`btn ${
-                  displayCurrency === 'MKD'
-                    ? 'btn-primary'
-                    : 'btn-outline-primary'
-                }`}
-                onClick={() => handleDisplayCurrencyChange('MKD')}
-              >
-                MKD (ден)
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Currency Converter Tab */}
-        {activeTab === 'currency' && (
-          <CurrencyConverter onCurrencyChange={handleCurrencyChange} />
-        )}
-
-        {/* Dashboard Tab */}
-        {activeTab === 'dashboard' && <Dashboard transactions={transactions} />}
-
-        {/* Budgets Tab */}
-        {activeTab === 'budgets' && (
-          <BudgetManager
-            transactions={transactions}
-            categories={categories}
-            onBudgetChange={(budgetStatuses) => {
-              // Optional: Handle budget status changes if needed
-              console.log('Budget statuses updated:', budgetStatuses);
-            }}
+    <Router>
+      <Layout {...layoutProps}>
+    <Routes>
+      <Route
+        path='/'
+            element={<DashboardPage transactions={transactions} />}
           />
-        )}
-
-        {/* Recurring Transactions Tab */}
-        {activeTab === 'recurring' && (
-          <RecurringTransactions
-            categories={categories}
-            onGenerateTransactions={() => {
-              // Refresh transactions list when new transactions are generated
-              fetchTransactions();
-            }}
+      <Route
+        path='/budgets'
+        element={
+              <BudgetsPage
+                transactions={transactions}
+                categories={categories}
+              />
+            }
           />
-        )}
-
-        {/* Transactions Tab */}
-        {activeTab === 'transactions' && (
-          <>
-            {/* Add Transaction Form */}
-            <div className='card mb-4'>
-              <div className='card-header bg-light'>
-                <h5>Add New Transaction</h5>
-              </div>
-              <div className='card-body'>
-                <form onSubmit={handleSubmit}>
-                  <div className='row'>
-                    <div className='col-md-6 mb-3'>
-                      <label htmlFor='amount' className='form-label'>
-                        Amount
-                      </label>
-                      <input
-                        type='number'
-                        step='0.01'
-                        className='form-control'
-                        id='amount'
-                        name='amount'
-                        value={formData.amount}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </div>
-                    <div className='col-md-6 mb-3'>
-                      <label htmlFor='category' className='form-label'>
-                        Category
-                      </label>
-                      <input
-                        type='text'
-                        className='form-control'
-                        id='category'
-                        name='category'
-                        value={formData.category}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className='row'>
-                    <div className='col-md-6 mb-3'>
-                      <label htmlFor='description' className='form-label'>
-                        Description
-                      </label>
-                      <input
-                        type='text'
-                        className='form-control'
-                        id='description'
-                        name='description'
-                        value={formData.description}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </div>
-                    <div className='col-md-3 mb-3'>
-                      <label htmlFor='date' className='form-label'>
-                        Date
-                      </label>
-                      <input
-                        type='date'
-                        className='form-control'
-                        id='date'
-                        name='date'
-                        value={formData.date}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </div>
-                    <div className='col-md-3 mb-3'>
-                      <label htmlFor='currency' className='form-label'>
-                        Currency
-                      </label>
-                      <select
-                        className='form-select'
-                        id='currency'
-                        name='currency'
-                        value={formData.currency}
-                        onChange={handleInputChange}
-                      >
-                        <option value='USD'>USD ($)</option>
-                        <option value='EUR'>EUR (€)</option>
-                        <option value='MKD'>MKD (ден)</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className='row'>
-                    <div className='col-md-12 mb-3'>
-                      <div className='form-check'>
-                        <input
-                          type='checkbox'
-                          className='form-check-input'
-                          id='is_income'
-                          name='is_income'
-                          checked={formData.is_income}
-                          onChange={handleInputChange}
-                        />
-                        <label htmlFor='is_income' className='form-check-label'>
-                          This is income
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                  <button type='submit' className='btn btn-primary w-100'>
-                    {isLoading ? 'Adding...' : 'Add Transaction'}
-                  </button>
-                </form>
-              </div>
-            </div>
-
-            {/* Error display */}
-            {error && (
-              <div className='alert alert-danger' role='alert'>
-                {error}
-              </div>
-            )}
-
-            {/* View toggle buttons */}
-            <div className='mb-3 d-flex justify-content-between align-items-center'>
-              <h3>Transactions</h3>
-              <div className='btn-group' role='group'>
-                <button
-                  type='button'
-                  className={`btn ${
-                    viewMode === 'list' ? 'btn-primary' : 'btn-outline-primary'
-                  }`}
-                  onClick={() => setViewMode('list')}
-                >
-                  List View
-                </button>
-                <button
-                  type='button'
-                  className={`btn ${
-                    viewMode === 'table' ? 'btn-primary' : 'btn-outline-primary'
-                  }`}
-                  onClick={() => setViewMode('table')}
-                >
-                  Table View
-                </button>
-              </div>
-            </div>
-
-            {/* Loading indicator */}
-            {isLoading && (
-              <div className='text-center my-4'>
-                <div className='spinner-border text-primary' role='status'>
-                  <span className='visually-hidden'>Loading...</span>
-                </div>
-              </div>
-            )}
-
-            {/* List view */}
-            {!isLoading && viewMode === 'list' && (
-              <ul className='list-group transaction-list'>
-                {transactions.length === 0 ? (
-                  <li className='list-group-item text-center'>
-                    No transactions found. Add one above!
-                  </li>
-                ) : (
-                  transactions.map((transaction) => (
-                    <TransactionItem
-                      key={transaction.id}
-                      transaction={transaction}
-                      onTransactionUpdated={fetchTransactions}
-                    />
-                  ))
-                )}
-              </ul>
-            )}
-
-            {/* Table view */}
-            {!isLoading && viewMode === 'table' && (
-              <div className='table-responsive'>
-                <table className='table table-striped table-bordered table-hover'>
-                  <thead className='table-dark'>
-                    <tr>
-                      <th>Date</th>
-                      <th>Amount</th>
-                      <th>Currency</th>
-                      <th>Category</th>
-                      <th>Description</th>
-                      <th>Type</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {transactions.length === 0 ? (
-                      <tr>
-                        <td colSpan='7' className='text-center'>
-                          No transactions found. Add one above!
-                        </td>
-                      </tr>
-                    ) : (
-                      transactions.map((transaction) => {
-                        // Get symbol for this transaction
-                        const symbol = getCurrencySymbol(transaction.currency);
-
-                        return (
-                          <tr key={transaction.id}>
-                            <td>{transaction.date}</td>
-                            <td
-                              className={
-                                transaction.is_income
-                                  ? 'text-success'
-                                  : 'text-danger'
-                              }
-                            >
-                              {transaction.is_income ? '+' : '-'}
-                              {symbol}
-                              {Math.abs(transaction.amount).toFixed(2)}
-                              {transaction.original_amount && (
-                                <small className='d-block text-muted'>
-                                  Originally:{' '}
-                                  {getCurrencySymbol(
-                                    transaction.original_currency
-                                  )}
-                                  {Math.abs(
-                                    transaction.original_amount
-                                  ).toFixed(2)}{' '}
-                                  {transaction.original_currency}
-                                </small>
-                              )}
-                            </td>
-                            <td>{transaction.currency}</td>
-                            <td>{formatCategory(transaction.category)}</td>
-                            <td>{transaction.description}</td>
-                            <td>
-                              {transaction.is_income ? 'Income' : 'Expense'}
-                            </td>
-                            <td>
-                              <button
-                                className='btn btn-sm btn-outline-primary me-2'
-                                onClick={() => {
-                                  const item = document.getElementById(
-                                    `transaction-${transaction.id}`
-                                  );
-                                  if (item) {
-                                    item.scrollIntoView({ behavior: 'smooth' });
-                                    // Highlight the item
-                                    item.classList.add('highlight');
-                                    setTimeout(() => {
-                                      item.classList.remove('highlight');
-                                    }, 2000);
-                                  } else {
-                                    setViewMode('list');
-                                    setTimeout(() => {
-                                      const newItem = document.getElementById(
-                                        `transaction-${transaction.id}`
-                                      );
-                                      if (newItem) {
-                                        newItem.scrollIntoView({
-                                          behavior: 'smooth',
-                                        });
-                                        newItem.classList.add('highlight');
-                                        setTimeout(() => {
-                                          newItem.classList.remove('highlight');
-                                        }, 2000);
-                                      }
-                                    }, 100);
-                                  }
-                                }}
-                              >
-                                View
-                              </button>
-                              <button
-                                className='btn btn-sm btn-outline-danger'
-                                onClick={async () => {
-                                  if (
-                                    window.confirm(
-                                      'Are you sure you want to delete this transaction?'
-                                    )
-                                  ) {
-                                    try {
-                                      await api.delete(
-                                        `/transactions/${transaction.id}`
-                                      );
-                                      fetchTransactions();
-                                    } catch (error) {
-                                      console.error(
-                                        'Error deleting transaction:',
-                                        error
-                                      );
-                                    }
-                                  }
-                                }}
-                              >
-                                Delete
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </>
-        )}
-      </div>
-    </div>
+          <Route
+            path='/transactions'
+            element={
+              <TransactionsPage
+                transactions={transactions}
+                fetchTransactions={fetchTransactions}
+              />
+            }
+          />
+      <Route
+        path='/recurring'
+        element={
+              <RecurringPage
+                categories={categories}
+                fetchTransactions={fetchTransactions}
+              />
+            }
+          />
+      <Route
+        path='/currency'
+        element={
+              <CurrencyPage
+                defaultCurrency={defaultCurrency}
+                handleCurrencyChange={handleCurrencyChange}
+              />
+            }
+          />
+      <Route
+        path='/goals'
+            element={<GoalsPage displayCurrency={displayCurrency} />}
+      />
+    </Routes>
+      </Layout>
+    </Router>
   );
 };
 

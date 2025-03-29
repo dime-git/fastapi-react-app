@@ -1,5 +1,16 @@
 import React, { useState } from 'react';
 import api from '../api';
+import { Card, Badge, Button, Form, Row, Col } from 'react-bootstrap';
+import {
+  FaEdit,
+  FaTrash,
+  FaSave,
+  FaTimes,
+  FaMoneyBillWave,
+  FaCalendarAlt,
+  FaTag,
+  FaInfo,
+} from 'react-icons/fa';
 
 const TransactionItem = ({ transaction, onTransactionUpdated }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -81,168 +92,188 @@ const TransactionItem = ({ transaction, onTransactionUpdated }) => {
   // Display the transaction item
   if (!isEditing) {
     const currencySymbol = getCurrencySymbol(transaction.currency || 'USD');
+    const formattedDate = new Date(transaction.date).toLocaleDateString();
 
     return (
-      <li
+      <Card
+        className='transaction-item mb-3 border-0 shadow-sm'
         id={`transaction-${transaction.id}`}
-        className='list-group-item d-flex justify-content-between align-items-center'
       >
-        <div>
-          <span
-            className={`badge ${
-              transaction.is_income ? 'bg-success' : 'bg-danger'
-            } me-2`}
-          >
-            {transaction.is_income ? '+' : '-'}
-            {currencySymbol}
-            {Math.abs(transaction.amount).toFixed(2)}
-          </span>
-          <strong>{formatCategory(transaction.category)}</strong>
-          <span className='text-muted ms-2'>{transaction.description}</span>
-          <small className='d-block text-muted'>
-            {transaction.date} • {transaction.currency}
-            {transaction.original_amount && (
-              <span className='ms-2'>
-                (Originally: {getCurrencySymbol(transaction.original_currency)}
-                {Math.abs(transaction.original_amount).toFixed(2)}{' '}
-                {transaction.original_currency})
-              </span>
-            )}
-          </small>
-        </div>
-        <div>
-          <button
-            className='btn btn-sm btn-outline-primary me-2'
-            onClick={() => setIsEditing(true)}
-          >
-            Edit
-          </button>
-          <button
-            className='btn btn-sm btn-outline-danger'
-            onClick={handleDelete}
-          >
-            Delete
-          </button>
-        </div>
-      </li>
+        <Card.Body>
+          <Row className='align-items-center'>
+            <Col xs={12} md={7}>
+              <div className='d-flex align-items-start'>
+                <div
+                  className={`transaction-icon rounded-circle p-2 me-3 ${
+                    transaction.is_income ? 'bg-success' : 'bg-danger'
+                  } bg-opacity-10`}
+                >
+                  <FaMoneyBillWave
+                    className={
+                      transaction.is_income ? 'text-success' : 'text-danger'
+                    }
+                  />
+                </div>
+                <div>
+                  <div className='d-flex align-items-center mb-1'>
+                    <h5 className='mb-0 me-2'>
+                      {formatCategory(transaction.category)}
+                    </h5>
+                    <Badge
+                      bg={transaction.is_income ? 'success' : 'danger'}
+                      className='px-2 py-1'
+                    >
+                      {transaction.is_income ? 'Income' : 'Expense'}
+                    </Badge>
+                  </div>
+                  <div className='text-muted small mb-1'>
+                    <FaInfo className='me-1' />{' '}
+                    {transaction.description || 'No description'}
+                  </div>
+                  <div className='d-flex align-items-center text-muted small'>
+                    <FaCalendarAlt className='me-1' /> {formattedDate}
+                    <span className='mx-2'>•</span>
+                    <FaTag className='me-1' /> {transaction.currency}
+                    {transaction.original_amount && (
+                      <span className='ms-2'>
+                        (Originally:{' '}
+                        {getCurrencySymbol(transaction.original_currency)}
+                        {Math.abs(transaction.original_amount).toFixed(2)}{' '}
+                        {transaction.original_currency})
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </Col>
+            <Col xs={12} md={3} className='mt-3 mt-md-0 text-md-center'>
+              <h4
+                className={
+                  transaction.is_income ? 'text-success' : 'text-danger'
+                }
+              >
+                {transaction.is_income ? '+' : '-'}
+                {currencySymbol}
+                {Math.abs(transaction.amount).toFixed(2)}
+              </h4>
+            </Col>
+            <Col xs={12} md={2} className='mt-3 mt-md-0 text-md-end'>
+              <Button
+                variant='outline-primary'
+                size='sm'
+                className='me-2'
+                onClick={() => setIsEditing(true)}
+              >
+                <FaEdit className='me-1' /> Edit
+              </Button>
+              <Button variant='outline-danger' size='sm' onClick={handleDelete}>
+                <FaTrash className='me-1' /> Delete
+              </Button>
+            </Col>
+          </Row>
+        </Card.Body>
+      </Card>
     );
   }
 
   // Display the edit form when isEditing is true
   return (
-    <li className='list-group-item'>
-      <form onSubmit={handleUpdate}>
-        <div className='row'>
-          <div className='col-md-6 mb-3'>
-            <label htmlFor={`amount-${transaction.id}`} className='form-label'>
-              Amount
-            </label>
-            <input
-              type='number'
-              className='form-control'
-              id={`amount-${transaction.id}`}
-              name='amount'
-              value={editedTransaction.amount}
+    <Card className='transaction-item mb-3 border-0 shadow-sm'>
+      <Card.Body>
+        <Form onSubmit={handleUpdate}>
+          <Row>
+            <Col md={6} className='mb-3'>
+              <Form.Group controlId={`amount-${transaction.id}`}>
+                <Form.Label>Amount</Form.Label>
+                <Form.Control
+                  type='number'
+                  name='amount'
+                  value={editedTransaction.amount}
+                  onChange={handleInputChange}
+                  required
+                />
+              </Form.Group>
+            </Col>
+            <Col md={6} className='mb-3'>
+              <Form.Group controlId={`currency-${transaction.id}`}>
+                <Form.Label>Currency</Form.Label>
+                <Form.Select
+                  name='currency'
+                  value={editedTransaction.currency}
+                  onChange={handleInputChange}
+                  required
+                >
+                  <option value='USD'>USD ($)</option>
+                  <option value='EUR'>EUR (€)</option>
+                  <option value='MKD'>MKD (ден)</option>
+                </Form.Select>
+              </Form.Group>
+            </Col>
+          </Row>
+          <Row>
+            <Col md={6} className='mb-3'>
+              <Form.Group controlId={`category-${transaction.id}`}>
+                <Form.Label>Category</Form.Label>
+                <Form.Control
+                  type='text'
+                  name='category'
+                  value={editedTransaction.category}
+                  onChange={handleInputChange}
+                  required
+                />
+              </Form.Group>
+            </Col>
+            <Col md={6} className='mb-3'>
+              <Form.Group controlId={`date-${transaction.id}`}>
+                <Form.Label>Date</Form.Label>
+                <Form.Control
+                  type='date'
+                  name='date'
+                  value={editedTransaction.date}
+                  onChange={handleInputChange}
+                  required
+                />
+              </Form.Group>
+            </Col>
+          </Row>
+          <Form.Group
+            className='mb-3'
+            controlId={`description-${transaction.id}`}
+          >
+            <Form.Label>Description</Form.Label>
+            <Form.Control
+              type='text'
+              name='description'
+              value={editedTransaction.description}
               onChange={handleInputChange}
               required
             />
-          </div>
-          <div className='col-md-6 mb-3'>
-            <label
-              htmlFor={`currency-${transaction.id}`}
-              className='form-label'
-            >
-              Currency
-            </label>
-            <select
-              className='form-select'
-              id={`currency-${transaction.id}`}
-              name='currency'
-              value={editedTransaction.currency}
+          </Form.Group>
+          <Form.Group className='mb-3'>
+            <Form.Check
+              type='checkbox'
+              id={`is_income-${transaction.id}`}
+              name='is_income'
+              checked={editedTransaction.is_income}
               onChange={handleInputChange}
-              required
+              label='This is income'
+            />
+          </Form.Group>
+          <div className='d-flex justify-content-end'>
+            <Button
+              variant='outline-secondary'
+              className='me-2'
+              onClick={() => setIsEditing(false)}
             >
-              <option value='USD'>USD ($)</option>
-              <option value='EUR'>EUR (€)</option>
-              <option value='MKD'>MKD (ден)</option>
-            </select>
+              <FaTimes className='me-1' /> Cancel
+            </Button>
+            <Button variant='primary' type='submit'>
+              <FaSave className='me-1' /> Save Changes
+            </Button>
           </div>
-        </div>
-        <div className='mb-3'>
-          <label htmlFor={`category-${transaction.id}`} className='form-label'>
-            Category
-          </label>
-          <input
-            type='text'
-            className='form-control'
-            id={`category-${transaction.id}`}
-            name='category'
-            value={editedTransaction.category}
-            onChange={handleInputChange}
-            required
-          />
-        </div>
-        <div className='mb-3'>
-          <label
-            htmlFor={`description-${transaction.id}`}
-            className='form-label'
-          >
-            Description
-          </label>
-          <input
-            type='text'
-            className='form-control'
-            id={`description-${transaction.id}`}
-            name='description'
-            value={editedTransaction.description}
-            onChange={handleInputChange}
-            required
-          />
-        </div>
-        <div className='mb-3 form-check'>
-          <input
-            type='checkbox'
-            className='form-check-input'
-            id={`is_income-${transaction.id}`}
-            name='is_income'
-            checked={editedTransaction.is_income}
-            onChange={handleInputChange}
-          />
-          <label
-            htmlFor={`is_income-${transaction.id}`}
-            className='form-check-label'
-          >
-            This is income
-          </label>
-        </div>
-        <div className='mb-3'>
-          <label htmlFor={`date-${transaction.id}`} className='form-label'>
-            Date
-          </label>
-          <input
-            type='date'
-            className='form-control'
-            id={`date-${transaction.id}`}
-            name='date'
-            value={editedTransaction.date}
-            onChange={handleInputChange}
-            required
-          />
-        </div>
-        <div className='d-flex justify-content-end'>
-          <button
-            type='button'
-            className='btn btn-secondary me-2'
-            onClick={() => setIsEditing(false)}
-          >
-            Cancel
-          </button>
-          <button type='submit' className='btn btn-primary'>
-            Save Changes
-          </button>
-        </div>
-      </form>
-    </li>
+        </Form>
+      </Card.Body>
+    </Card>
   );
 };
 
