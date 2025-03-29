@@ -4,19 +4,12 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import Optional
 import os
-from app.core.config import MOCK_FIREBASE
 
 # Initialize HTTP Bearer scheme for token authentication
 security = HTTPBearer()
 
-# Mock user data for use in mock mode
-MOCK_USER = {
-    "uid": "mock-user-id-123456",
-    "email": "mock@example.com",
-    "email_verified": True,
-    "name": "Mock User",
-    "picture": "https://via.placeholder.com/150"
-}
+# Skip auth for testing if needed
+SKIP_AUTH = os.getenv("SKIP_AUTH", "False").lower() in ("true", "1", "t")
 
 class AuthService:
     """Service for handling authentication via Firebase"""
@@ -35,10 +28,14 @@ class AuthService:
         Raises:
             HTTPException: If token is invalid, expired, or missing
         """
-        # If in mock mode, bypass token verification
-        if MOCK_FIREBASE:
-            print("⚠️ Using mock authentication - no real auth verification performed")
-            return MOCK_USER
+        # Skip auth if configured to do so (for testing only)
+        if SKIP_AUTH:
+            return {
+                "uid": "test-user-id",
+                "email": "test@example.com",
+                "email_verified": True,
+                "name": "Test User"
+            }
             
         token = credentials.credentials
         
@@ -73,10 +70,6 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     Returns:
         dict: User claims from the verified token
     """
-    # In mock mode, we can optionally allow skipping the auth header for easier testing
-    if MOCK_FIREBASE and credentials is None:
-        return MOCK_USER
-        
     return await AuthService.verify_token(credentials)
 
 # Dependency for optional authentication (endpoints that work with or without auth)
@@ -90,9 +83,6 @@ async def get_optional_user(credentials: Optional[HTTPAuthorizationCredentials] 
     Returns:
         Optional[dict]: User claims if authenticated, None otherwise
     """
-    if MOCK_FIREBASE:
-        return MOCK_USER
-        
     if not credentials:
         return None
         
