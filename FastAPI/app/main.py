@@ -8,7 +8,6 @@ from app.api.routes.currency import router as currency_router
 from app.api.routes.goals import goals_router
 from app.api.routes.auth import auth_router
 from app.services.currency_service import CurrencyService
-import os
 
 def create_app() -> FastAPI:
     """
@@ -16,14 +15,10 @@ def create_app() -> FastAPI:
     """
     app = FastAPI(title="Finance App API")
     
-    # Check if we're in production
-    is_prod = os.getenv("ENV", "development") == "production"
-    
-    # Set up CORS - more permissive for development, restricted for production
+    # Set up CORS - more permissive for development
     app.add_middleware(
         CORSMiddleware,
-        # For production, change to CORS_ORIGINS from config which should be set to your frontend domain
-        allow_origins=["*"] if not is_prod else CORS_ORIGINS,
+        allow_origins=["*"],  # For development - change to CORS_ORIGINS for production
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
