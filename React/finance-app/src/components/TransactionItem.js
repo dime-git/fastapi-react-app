@@ -13,21 +13,25 @@ import {
 } from 'react-icons/fa';
 
 const TransactionItem = ({ transaction, onTransactionUpdated }) => {
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedTransaction, setEditedTransaction] = useState({
-    amount: transaction.amount,
-    category: transaction.category,
-    description: transaction.description,
-    is_income: transaction.is_income,
-    date: transaction.date,
-    currency: transaction.currency || 'USD',
+    ...transaction,
   });
+  const isDarkMode = document.body.classList.contains('dark-mode');
 
   // Handle input changes for the edit form
-  const handleInputChange = (e) => {
-    const value =
-      e.target.type === 'checkbox' ? e.target.checked : e.target.value;
-    setEditedTransaction({ ...editedTransaction, [e.target.name]: value });
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setEditedTransaction({
+      ...editedTransaction,
+      [name]:
+        type === 'checkbox'
+          ? checked
+          : name === 'amount'
+          ? parseFloat(value)
+          : value,
+    });
   };
 
   // Find currency symbol for display
@@ -44,42 +48,31 @@ const TransactionItem = ({ transaction, onTransactionUpdated }) => {
   };
 
   // Handle form submission to update a transaction
-  const handleUpdate = async (e) => {
-    e.preventDefault();
-    try {
-      // Format the data before sending to API
-      const submissionData = {
-        ...editedTransaction,
-        amount: parseFloat(editedTransaction.amount),
-      };
-
-      // Make PUT request to update transaction
-      await api.put(`/transactions/${transaction.id}`, submissionData);
-
-      setIsEditing(false);
-
-      // Notify parent component to refresh transactions
-      if (onTransactionUpdated) {
+  const handleEdit = async (e) => {
+    if (isEditing) {
+      if (e) e.preventDefault();
+      try {
+        await api.put(`/transactions/${transaction.id}`, editedTransaction);
         onTransactionUpdated();
+        setIsEditing(false);
+      } catch (error) {
+        console.error('Error updating transaction:', error);
       }
-    } catch (error) {
-      console.error('Error updating transaction:', error);
+    } else {
+      setIsEditing(true);
     }
   };
 
   // Handle transaction deletion
   const handleDelete = async () => {
-    if (window.confirm('Are you sure you want to delete this transaction?')) {
-      try {
-        await api.delete(`/transactions/${transaction.id}`);
-
-        // Notify parent component to refresh transactions
-        if (onTransactionUpdated) {
-          onTransactionUpdated();
-        }
-      } catch (error) {
-        console.error('Error deleting transaction:', error);
-      }
+    try {
+      setIsDeleting(true);
+      await api.delete(`/transactions/${transaction.id}`);
+      onTransactionUpdated();
+    } catch (error) {
+      console.error('Error deleting transaction:', error);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -89,17 +82,30 @@ const TransactionItem = ({ transaction, onTransactionUpdated }) => {
     return category.replace(/([a-z])([A-Z0-9])/g, '$1 $2');
   };
 
+  // Format date string to a readable format
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString();
+  };
+
+  // Format currency based on the transaction's currency
+  const formatCurrency = (amount, currency) => {
+    const symbol = getCurrencySymbol(currency || 'USD');
+    return `${symbol}${Math.abs(amount).toFixed(2)}`;
+  };
+
   // Display the transaction item
   if (!isEditing) {
     const currencySymbol = getCurrencySymbol(transaction.currency || 'USD');
-    const formattedDate = new Date(transaction.date).toLocaleDateString();
+    const formattedDate = formatDate(transaction.date);
 
     return (
       <Card
-        className='transaction-item mb-3 border-0 shadow-sm'
+        className={`transaction-item ${
+          transaction.is_income ? 'income' : 'expense'
+        } mb-3 border-0 shadow-sm`}
         id={`transaction-${transaction.id}`}
       >
-        <Card.Body>
+        <Card.Body className='p-3'>
           <Row className='align-items-center'>
             <Col xs={12} md={7}>
               <div className='d-flex align-items-start'>
@@ -153,22 +159,29 @@ const TransactionItem = ({ transaction, onTransactionUpdated }) => {
                 }
               >
                 {transaction.is_income ? '+' : '-'}
-                {currencySymbol}
-                {Math.abs(transaction.amount).toFixed(2)}
+                {formatCurrency(transaction.amount, transaction.currency)}
               </h4>
             </Col>
             <Col xs={12} md={2} className='mt-3 mt-md-0 text-md-end'>
-              <Button
-                variant='outline-primary'
-                size='sm'
-                className='me-2'
-                onClick={() => setIsEditing(true)}
-              >
-                <FaEdit className='me-1' /> Edit
-              </Button>
-              <Button variant='outline-danger' size='sm' onClick={handleDelete}>
-                <FaTrash className='me-1' /> Delete
-              </Button>
+              <div className='transaction-actions'>
+                <Button
+                  variant={isDarkMode ? 'primary' : 'outline-primary'}
+                  size='sm'
+                  className='me-2'
+                  onClick={handleEdit}
+                >
+                  <FaEdit className='me-1' /> Edit
+                </Button>
+                <Button
+                  variant={isDarkMode ? 'danger' : 'outline-danger'}
+                  size='sm'
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                >
+                  <FaTrash className='me-1' />{' '}
+                  {isDeleting ? 'Deleting...' : 'Delete'}
+                </Button>
+              </div>
             </Col>
           </Row>
         </Card.Body>
@@ -179,18 +192,20 @@ const TransactionItem = ({ transaction, onTransactionUpdated }) => {
   // Display the edit form when isEditing is true
   return (
     <Card className='transaction-item mb-3 border-0 shadow-sm'>
-      <Card.Body>
-        <Form onSubmit={handleUpdate}>
+      <Card.Body className='p-4'>
+        <Form onSubmit={handleEdit}>
           <Row>
             <Col md={6} className='mb-3'>
               <Form.Group controlId={`amount-${transaction.id}`}>
                 <Form.Label>Amount</Form.Label>
                 <Form.Control
                   type='number'
+                  step='0.01'
                   name='amount'
                   value={editedTransaction.amount}
-                  onChange={handleInputChange}
+                  onChange={handleChange}
                   required
+                  className={isDarkMode ? 'bg-input' : ''}
                 />
               </Form.Group>
             </Col>
@@ -200,12 +215,13 @@ const TransactionItem = ({ transaction, onTransactionUpdated }) => {
                 <Form.Select
                   name='currency'
                   value={editedTransaction.currency}
-                  onChange={handleInputChange}
+                  onChange={handleChange}
                   required
+                  className={isDarkMode ? 'bg-input' : ''}
                 >
-                  <option value='USD'>USD ($)</option>
-                  <option value='EUR'>EUR (€)</option>
-                  <option value='MKD'>MKD (ден)</option>
+                  <option value='USD'>USD</option>
+                  <option value='EUR'>EUR</option>
+                  <option value='MKD'>MKD</option>
                 </Form.Select>
               </Form.Group>
             </Col>
@@ -218,8 +234,9 @@ const TransactionItem = ({ transaction, onTransactionUpdated }) => {
                   type='text'
                   name='category'
                   value={editedTransaction.category}
-                  onChange={handleInputChange}
+                  onChange={handleChange}
                   required
+                  className={isDarkMode ? 'bg-input' : ''}
                 />
               </Form.Group>
             </Col>
@@ -230,8 +247,9 @@ const TransactionItem = ({ transaction, onTransactionUpdated }) => {
                   type='date'
                   name='date'
                   value={editedTransaction.date}
-                  onChange={handleInputChange}
+                  onChange={handleChange}
                   required
+                  className={isDarkMode ? 'bg-input' : ''}
                 />
               </Form.Group>
             </Col>
@@ -245,29 +263,31 @@ const TransactionItem = ({ transaction, onTransactionUpdated }) => {
               type='text'
               name='description'
               value={editedTransaction.description}
-              onChange={handleInputChange}
+              onChange={handleChange}
               required
+              className={isDarkMode ? 'bg-input' : ''}
             />
           </Form.Group>
-          <Form.Group className='mb-3'>
+          <Form.Group className='mb-4'>
             <Form.Check
               type='checkbox'
               id={`is_income-${transaction.id}`}
               name='is_income'
               checked={editedTransaction.is_income}
-              onChange={handleInputChange}
+              onChange={handleChange}
               label='This is income'
+              className={isDarkMode ? 'text-light' : ''}
             />
           </Form.Group>
           <div className='d-flex justify-content-end'>
             <Button
-              variant='outline-secondary'
+              variant={isDarkMode ? 'outline-secondary' : 'outline-secondary'}
               className='me-2'
               onClick={() => setIsEditing(false)}
             >
               <FaTimes className='me-1' /> Cancel
             </Button>
-            <Button variant='primary' type='submit'>
+            <Button variant={isDarkMode ? 'primary' : 'primary'} type='submit'>
               <FaSave className='me-1' /> Save Changes
             </Button>
           </div>

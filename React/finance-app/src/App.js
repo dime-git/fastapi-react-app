@@ -70,18 +70,34 @@ const Layout = ({
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (darkMode) {
+      document.body.classList.add('dark-mode');
+      localStorage.setItem('darkMode', 'true');
+    } else {
+      document.body.classList.remove('dark-mode');
+      localStorage.setItem('darkMode', 'false');
+    }
+  }, [darkMode]);
+
+  useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
-      setCurrentUser(user);
+      if (user) {
+        setCurrentUser(user);
+      } else {
+        setCurrentUser(null);
+        navigate('/login');
+      }
     });
+
     return () => unsubscribe();
-  }, []);
+  }, [navigate]);
 
   const handleLogout = async () => {
     try {
       await auth.signOut();
       navigate('/login');
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error('Error logging out:', error);
     }
   };
 
@@ -104,88 +120,112 @@ const Layout = ({
 
   return (
     <div className={`finance-app ${darkMode ? 'dark-mode' : ''}`}>
-      <Navbar expand='lg' bg='primary' variant='dark' className='mb-4'>
+      <Navbar
+        expand='lg'
+        bg={darkMode ? 'dark' : 'primary'}
+        variant='dark'
+        className='modern-navbar mb-4'
+      >
         <Container>
-          <Navbar.Brand as={Link} to='/'>
+          <Navbar.Brand as={Link} to='/' className='modern-brand'>
             <FaDollarSign className='me-2' />
             Finance Dashboard
           </Navbar.Brand>
           <Navbar.Toggle aria-controls='basic-navbar-nav' />
           <Navbar.Collapse id='basic-navbar-nav'>
-            <Nav className='ms-auto'>
+            <Nav className='mx-auto'>
               {currentUser ? (
                 <>
                   <Nav.Link
                     as={Link}
                     to='/'
-                    className={`px-3 ${
+                    className={`modern-nav-link ${
                       location.pathname === '/' ? 'active' : ''
                     }`}
                   >
-                    <FaChartLine className='me-1' /> Dashboard
+                    <FaChartLine />
+                    <span className='modern-nav-text'>Dashboard</span>
                   </Nav.Link>
                   <Nav.Link
                     as={Link}
                     to='/budgets'
-                    className={`px-3 ${
+                    className={`modern-nav-link ${
                       location.pathname === '/budgets' ? 'active' : ''
                     }`}
                   >
-                    <FaWallet className='me-1' /> Budgets
+                    <FaWallet />
+                    <span className='modern-nav-text'>Budgets</span>
                   </Nav.Link>
                   <Nav.Link
                     as={Link}
                     to='/transactions'
-                    className={`px-3 ${
+                    className={`modern-nav-link ${
                       location.pathname === '/transactions' ? 'active' : ''
                     }`}
                   >
-                    <FaRegStar className='me-1' /> Transactions
+                    <FaRegStar />
+                    <span className='modern-nav-text'>Transactions</span>
                   </Nav.Link>
                   <Nav.Link
                     as={Link}
                     to='/recurring'
-                    className={`px-3 ${
+                    className={`modern-nav-link ${
                       location.pathname === '/recurring' ? 'active' : ''
                     }`}
                   >
-                    <FaCalendarAlt className='me-1' /> Recurring
+                    <FaCalendarAlt />
+                    <span className='modern-nav-text'>Recurring</span>
                   </Nav.Link>
                   <Nav.Link
                     as={Link}
                     to='/currency'
-                    className={`px-3 ${
+                    className={`modern-nav-link ${
                       location.pathname === '/currency' ? 'active' : ''
                     }`}
                   >
-                    <FaExchangeAlt className='me-1' /> Currency
+                    <FaExchangeAlt />
+                    <span className='modern-nav-text'>Currency</span>
                   </Nav.Link>
                   <Nav.Link
                     as={Link}
                     to='/goals'
-                    className={`px-3 ${
+                    className={`modern-nav-link ${
                       location.pathname === '/goals' ? 'active' : ''
                     }`}
                   >
-                    <FaFlagCheckered className='me-1' /> Goals
-                  </Nav.Link>
-                  <div className='nav-link'>
-                    <FaUserCircle className='me-1' />{' '}
-                    {currentUser.displayName || currentUser.email}
-                  </div>
-                  <Nav.Link onClick={handleLogout} className='px-3'>
-                    <FaSignOutAlt className='me-1' /> Logout
+                    <FaFlagCheckered />
+                    <span className='modern-nav-text'>Goals</span>
                   </Nav.Link>
                 </>
               ) : (
                 <Nav.Link
                   as={Link}
                   to='/login'
-                  className={`px-3 ${
+                  className={`modern-nav-link ${
                     location.pathname === '/login' ? 'active' : ''
                   }`}
                 >
-                  <FaUserCircle className='me-1' /> Login
+                  <FaUserCircle />
+                  <span className='modern-nav-text'>Login</span>
+                </Nav.Link>
+              )}
+            </Nav>
+            <Nav className='ms-auto'>
+              {currentUser && (
+                <Nav.Link className='d-flex align-items-center me-3'>
+                  <FaUserCircle className='me-1' />
+                  <span className='ms-1'>
+                    {currentUser.displayName || currentUser.email}
+                  </span>
+                </Nav.Link>
+              )}
+              {currentUser && (
+                <Nav.Link
+                  onClick={handleLogout}
+                  className='d-flex align-items-center me-3'
+                >
+                  <FaSignOutAlt className='me-1' />
+                  <span className='ms-1'>Logout</span>
                 </Nav.Link>
               )}
               <div
@@ -195,69 +235,56 @@ const Layout = ({
                 {darkMode ? <FaSun className='text-warning' /> : <FaMoon />}
               </div>
             </Nav>
-            {currentUser && (
-              <Button
-                variant='success'
-                className='ms-3'
-                onClick={() => setShowAddTransaction(!showAddTransaction)}
-              >
-                <FaPlus className='me-1' /> Add Transaction
-              </Button>
-            )}
           </Navbar.Collapse>
         </Container>
       </Navbar>
 
-      <Container fluid>
+      <Container>
         {currentUser && (
-          <Row className='mb-4'>
-            <Col>
-              <div className='finance-summary d-flex justify-content-around p-4 rounded shadow'>
-                <div className='text-center'>
-                  <h6 className='text-muted mb-2'>Income</h6>
-                  <h3 className='text-success fw-bold'>
-                    {currencySymbol}
-                    {totalIncome.toFixed(2)}
-                  </h3>
-                  <small className='text-muted'>{displayCurrency}</small>
-                </div>
-                <div className='text-center'>
-                  <h6 className='text-muted mb-2'>Expenses</h6>
-                  <h3 className='text-danger fw-bold'>
-                    {currencySymbol}
-                    {totalExpenses.toFixed(2)}
-                  </h3>
-                  <small className='text-muted'>{displayCurrency}</small>
-                </div>
-                <div className='text-center'>
-                  <h6 className='text-muted mb-2'>Balance</h6>
-                  <h3
-                    className={
-                      balance >= 0
-                        ? 'text-primary fw-bold'
-                        : 'text-danger fw-bold'
-                    }
-                  >
-                    {currencySymbol}
-                    {balance.toFixed(2)}
-                  </h3>
-                  <small className='text-muted'>{displayCurrency}</small>
-                </div>
-                <div className='text-center'>
-                  <h6 className='text-muted mb-2'>Currency</h6>
-                  <Form.Select
-                    className='form-select-sm'
-                    value={displayCurrency}
-                    onChange={(e) =>
-                      handleDisplayCurrencyChange(e.target.value)
-                    }
-                  >
-                    {currencyOptions}
-                  </Form.Select>
-                </div>
+          <div className='finance-summary modern-summary'>
+            <div className='summary-card income-card'>
+              <div className='summary-label'>Income</div>
+              <div className='summary-value text-success'>
+                {currencySymbol}
+                {totalIncome.toFixed(2)}
               </div>
-            </Col>
-          </Row>
+              <div className='summary-currency'>{displayCurrency}</div>
+            </div>
+
+            <div className='summary-card expense-card'>
+              <div className='summary-label'>Expenses</div>
+              <div className='summary-value text-danger'>
+                {currencySymbol}
+                {totalExpenses.toFixed(2)}
+              </div>
+              <div className='summary-currency'>{displayCurrency}</div>
+            </div>
+
+            <div className='summary-card balance-card'>
+              <div className='summary-label'>Balance</div>
+              <div
+                className={`summary-value ${
+                  balance >= 0 ? 'text-primary' : 'text-danger'
+                }`}
+              >
+                {currencySymbol}
+                {balance.toFixed(2)}
+              </div>
+              <div className='summary-currency'>{displayCurrency}</div>
+            </div>
+
+            <div className='summary-card currency-card'>
+              <div className='summary-label'>Currency</div>
+              <Form.Select
+                size='sm'
+                className='mt-2'
+                value={displayCurrency}
+                onChange={(e) => handleDisplayCurrencyChange(e.target.value)}
+              >
+                {currencyOptions}
+              </Form.Select>
+            </div>
+          </div>
         )}
 
         {showAddTransaction && (
@@ -383,11 +410,21 @@ const Layout = ({
         <div className='main-content'>{children}</div>
       </Container>
 
-      <footer className='bg-primary text-white text-center py-4 mt-5'>
+      {currentUser && (
+        <Button
+          className='add-transaction-btn'
+          onClick={() => setShowAddTransaction(!showAddTransaction)}
+        >
+          <FaPlus />
+        </Button>
+      )}
+
+      <footer className='py-3 text-center text-muted'>
         <Container>
-          <p className='mb-0'>
-            Finance Dashboard &copy; {new Date().getFullYear()}
-          </p>
+          <small>
+            &copy; {new Date().getFullYear()} Finance Dashboard. All rights
+            reserved.
+          </small>
         </Container>
       </footer>
     </div>
@@ -396,22 +433,7 @@ const Layout = ({
 
 // Dashboard Page Component
 const DashboardPage = ({ transactions }) => {
-  return (
-    <section className='mb-5'>
-      <Row className='mb-4'>
-        <Col>
-          <h2 className='section-title'>
-            <FaChartLine className='me-2' />
-            Dashboard
-          </h2>
-          <p className='text-muted'>
-            Overview of your financial status and activity
-          </p>
-        </Col>
-      </Row>
-      <Dashboard transactions={transactions} />
-    </section>
-  );
+  return <Dashboard transactions={transactions} />;
 };
 
 // Budgets Page Component
@@ -579,9 +601,7 @@ const App = () => {
 
   // Toggle dark mode
   const toggleDarkMode = () => {
-    const newDarkMode = !darkMode;
-    setDarkMode(newDarkMode);
-    localStorage.setItem('darkMode', newDarkMode);
+    setDarkMode(!darkMode);
   };
 
   // Format category string to add spaces between words
