@@ -29,16 +29,33 @@ def initialize_firebase():
                 firebase_creds_env = os.getenv('FIREBASE_SERVICE_ACCOUNT_JSON')
                 
                 if firebase_creds_env:
-                    # Parse JSON from environment variable
-                    cred_dict = json.loads(firebase_creds_env)
-                    cred = credentials.Certificate(cred_dict)
-                else:
+                    try:
+                        # Parse JSON from environment variable
+                        cred_dict = json.loads(firebase_creds_env)
+                        cred = credentials.Certificate(cred_dict)
+                    except Exception as json_error:
+                        print(f"Error parsing JSON credentials: {json_error}")
+                        # Fall back to method 3 if JSON parsing fails
+                        firebase_creds_env = None
+                
+                if not firebase_creds_env:
                     # Method 3: Use individual credential components from environment variables
+                    private_key = os.getenv("FIREBASE_PRIVATE_KEY", "")
+                    
+                    # Handle different potential formats of the private key in environment variables
+                    if private_key.startswith('"') and private_key.endswith('"'):
+                        private_key = private_key[1:-1]  # Remove surrounding quotes
+                    
+                    # Replace literal "\n" with actual newlines
+                    if "\\n" in private_key:
+                        private_key = private_key.replace("\\n", "\n")
+                    
+                    print("Using environment variables for Firebase credentials")
                     cred_dict = {
                         "type": "service_account",
                         "project_id": os.getenv("FIREBASE_PROJECT_ID"),
                         "private_key_id": os.getenv("FIREBASE_PRIVATE_KEY_ID", ""),
-                        "private_key": os.getenv("FIREBASE_PRIVATE_KEY", "").replace("\\n", "\n"),
+                        "private_key": private_key,
                         "client_email": os.getenv("FIREBASE_CLIENT_EMAIL"),
                         "client_id": os.getenv("FIREBASE_CLIENT_ID"),
                         "auth_uri": os.getenv("FIREBASE_AUTH_URI", "https://accounts.google.com/o/oauth2/auth"),
@@ -46,6 +63,13 @@ def initialize_firebase():
                         "auth_provider_x509_cert_url": os.getenv("FIREBASE_AUTH_PROVIDER_CERT_URL", "https://www.googleapis.com/oauth2/v1/certs"),
                         "client_x509_cert_url": os.getenv("FIREBASE_CLIENT_CERT_URL")
                     }
+                    
+                    # Print debug info about the private key (safe version for logs)
+                    pk_length = len(private_key) if private_key else 0
+                    pk_preview = private_key[:10] + "..." if pk_length > 10 else ""
+                    print(f"Private key length: {pk_length}, Preview: {pk_preview}")
+                    print(f"Private key contains actual newlines: {'\\n' in private_key}")
+                    
                     cred = credentials.Certificate(cred_dict)
             
             default_app = firebase_admin.initialize_app(cred)
