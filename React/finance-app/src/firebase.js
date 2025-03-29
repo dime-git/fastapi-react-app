@@ -4,10 +4,6 @@ import 'firebase/compat/auth';
 import 'firebase/compat/firestore';
 import { firebaseConfig } from './config';
 
-// Add verbose logging
-console.log('Firebase initialization starting...');
-console.log('Config being used:', JSON.stringify(firebaseConfig));
-
 let app, auth, db;
 
 try {

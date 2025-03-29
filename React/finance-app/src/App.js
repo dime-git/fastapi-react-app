@@ -13,7 +13,6 @@ import TransactionItem from './components/TransactionItem';
 import Dashboard from './components/Dashboard';
 import BudgetManager from './components/BudgetManager';
 import RecurringTransactions from './components/RecurringTransactions';
-import CurrencyConverter from './components/CurrencyConverter';
 import GoalsTracker from './components/GoalsTracker';
 import FirebaseAuth from './components/FirebaseAuth';
 import PrivateRoute from './components/PrivateRoute';
@@ -129,7 +128,7 @@ const Layout = ({
         <Container>
           <Navbar.Brand as={Link} to='/' className='modern-brand'>
             <FaDollarSign className='me-2' />
-            Finance Dashboard
+            UPDATED Finance App
           </Navbar.Brand>
           <Navbar.Toggle aria-controls='basic-navbar-nav' />
           <Navbar.Collapse id='basic-navbar-nav'>
@@ -175,16 +174,6 @@ const Layout = ({
                   >
                     <FaCalendarAlt />
                     <span className='modern-nav-text'>Recurring</span>
-                  </Nav.Link>
-                  <Nav.Link
-                    as={Link}
-                    to='/currency'
-                    className={`modern-nav-link ${
-                      location.pathname === '/currency' ? 'active' : ''
-                    }`}
-                  >
-                    <FaExchangeAlt />
-                    <span className='modern-nav-text'>Currency</span>
                   </Nav.Link>
                   <Nav.Link
                     as={Link}
@@ -271,18 +260,6 @@ const Layout = ({
                 {balance.toFixed(2)}
               </div>
               <div className='summary-currency'>{displayCurrency}</div>
-            </div>
-
-            <div className='summary-card currency-card'>
-              <div className='summary-label'>Currency</div>
-              <Form.Select
-                size='sm'
-                className='mt-2'
-                value={displayCurrency}
-                onChange={(e) => handleDisplayCurrencyChange(e.target.value)}
-              >
-                {currencyOptions}
-              </Form.Select>
             </div>
           </div>
         )}
@@ -541,27 +518,6 @@ const RecurringPage = ({ categories, fetchTransactions }) => {
   );
 };
 
-// Currency Converter Page Component
-const CurrencyPage = ({ defaultCurrency, handleCurrencyChange }) => {
-  return (
-    <section className='mb-5'>
-      <Row className='mb-4'>
-        <Col>
-          <h2 className='section-title'>
-            <FaExchangeAlt className='me-2' />
-            Currency Converter
-          </h2>
-          <p className='text-muted'>Convert between different currencies</p>
-        </Col>
-      </Row>
-      <CurrencyConverter
-        defaultCurrency={defaultCurrency}
-        onCurrencyChange={handleCurrencyChange}
-      />
-    </section>
-  );
-};
-
 // Goals Page Component
 const GoalsPage = ({ displayCurrency }) => {
   return (
@@ -775,15 +731,6 @@ const App = () => {
                 <RecurringPage
                   categories={categories}
                   fetchTransactions={fetchTransactions}
-                />
-              }
-            />
-            <Route
-              path='/currency'
-              element={
-                <CurrencyPage
-                  defaultCurrency={defaultCurrency}
-                  handleCurrencyChange={handleCurrencyChange}
                 />
               }
             />

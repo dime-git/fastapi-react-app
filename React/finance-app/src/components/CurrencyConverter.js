@@ -93,15 +93,14 @@ const CurrencyConverter = ({ onCurrencyChange }) => {
     if (savedCurrencies) {
       try {
         const parsedCurrencies = JSON.parse(savedCurrencies);
-        // Make sure it's an array before setting
         if (Array.isArray(parsedCurrencies)) {
           setCurrencies(parsedCurrencies);
         } else {
           setCurrencies(FALLBACK_CURRENCIES);
-          console.warn('Saved currencies is not an array, using fallback');
+          // Saved currencies is not an array, using fallback
         }
       } catch (e) {
-        console.warn('Could not parse saved currencies:', e);
+        // Could not parse saved currencies
         setCurrencies(FALLBACK_CURRENCIES);
       }
     }
@@ -110,7 +109,7 @@ const CurrencyConverter = ({ onCurrencyChange }) => {
       try {
         setRates(JSON.parse(savedRates));
       } catch (e) {
-        console.warn('Could not parse saved rates:', e);
+        // Could not parse saved rates
         setRates(FALLBACK_RATES);
       }
     }
@@ -231,7 +230,7 @@ const CurrencyConverter = ({ onCurrencyChange }) => {
       const forcedOfflineMode =
         localStorage.getItem('finance_app_force_offline') === 'true';
       if (forcedOfflineMode) {
-        console.log('User has selected forced offline mode');
+        // User has selected forced offline mode
         useFallbackData();
         setError('Using offline mode by user preference.');
         setLoading(false);
@@ -247,10 +246,7 @@ const CurrencyConverter = ({ onCurrencyChange }) => {
           throw new Error('API health check failed');
         }
       } catch (healthErr) {
-        console.warn(
-          'API health check failed, using fallback mode:',
-          healthErr
-        );
+        // API health check failed, using fallback mode
         useFallbackData();
         setError(
           'Server unavailable. Using offline mode with saved preferences.'
@@ -285,7 +281,6 @@ const CurrencyConverter = ({ onCurrencyChange }) => {
             }
 
             // Otherwise just use first currency
-            console.warn('Could not fetch default currency:', defaultErr);
             setDefaultCurrency(currenciesResponse.data[0].code);
             setFromCurrency(currenciesResponse.data[0].code);
           }
@@ -293,10 +288,7 @@ const CurrencyConverter = ({ onCurrencyChange }) => {
           try {
             await handleInitializeCurrencies(false);
           } catch (initErr) {
-            console.warn(
-              'Initialization failed, using fallback data:',
-              initErr
-            );
+            // Initialization failed, using fallback data
             useFallbackData();
             setError('Could not initialize currencies. Using offline mode.');
             setLoading(false);
@@ -313,14 +305,14 @@ const CurrencyConverter = ({ onCurrencyChange }) => {
             setRates(FALLBACK_RATES);
           }
         } catch (ratesErr) {
-          console.warn('Could not fetch exchange rates:', ratesErr);
+          // Could not fetch exchange rates
           setRates(FALLBACK_RATES);
         }
 
         // If we got here, we're using the API successfully
         setUsingFallback(false);
       } catch (err) {
-        console.error('Failed to fetch currencies, using fallbacks:', err);
+        // Failed to fetch currencies, using fallbacks
         useFallbackData();
 
         if (err.response && err.response.status >= 500) {
@@ -337,7 +329,7 @@ const CurrencyConverter = ({ onCurrencyChange }) => {
 
       setLoading(false);
     } catch (err) {
-      console.error('Error in currency data fetching process:', err);
+      // Error in currency data fetching process
       useFallbackData();
       setError(
         'API may not be available. Using offline mode with saved preferences.'
@@ -384,7 +376,7 @@ const CurrencyConverter = ({ onCurrencyChange }) => {
       setUsingFallback(false);
       setInitializing(false);
     } catch (err) {
-      console.error('Error initializing currencies:', err);
+      // Error initializing currencies
       useFallbackData();
       setError('Failed to initialize currencies. Using offline mode.');
       setInitializing(false);
@@ -415,7 +407,7 @@ const CurrencyConverter = ({ onCurrencyChange }) => {
         // Server update succeeded, clear any error
         setError('');
       } catch (err) {
-        console.warn('Error setting default currency on server:', err);
+        // Error setting default currency on server
 
         // If we get a server error, switch to fallback mode
         if (err.response && err.response.status >= 500) {
@@ -437,7 +429,7 @@ const CurrencyConverter = ({ onCurrencyChange }) => {
 
       setLoading(false);
     } catch (err) {
-      console.error('Unexpected error in handleSetDefault:', err);
+      // Unexpected error in handleSetDefault
       setLoading(false);
       setError('Error occurred. Currency changed locally only.');
     }
@@ -668,7 +660,7 @@ const CurrencyConverter = ({ onCurrencyChange }) => {
                   <h6>Default Currency</h6>
                   <div className='d-flex align-items-center'>
                     <div className='current-default me-3'>
-                      {currencies && currencies.length > 0
+                      {Array.isArray(currencies) && currencies.length > 0
                         ? currencies.find((c) => c.code === defaultCurrency)
                             ?.symbol || '$'
                         : '$'}{' '}
@@ -688,8 +680,11 @@ const CurrencyConverter = ({ onCurrencyChange }) => {
                         </Form.Select>
                         <Button
                           size='sm'
-                          onClick={handleSetDefaultCurrency}
-                          disabled={newDefaultCurrency === defaultCurrency}
+                          onClick={() => handleSetDefault(newDefaultCurrency)}
+                          disabled={
+                            !newDefaultCurrency ||
+                            newDefaultCurrency === defaultCurrency
+                          }
                         >
                           Set as Default
                         </Button>
@@ -711,25 +706,25 @@ const CurrencyConverter = ({ onCurrencyChange }) => {
                       {rates && Object.keys(rates).length > 0 ? (
                         Object.entries(rates)
                           .filter(([code]) => code !== defaultCurrency)
-                          .map(([code, rate]) => (
-                            <tr key={code}>
-                              <td>
-                                {code} -{' '}
-                                {Array.isArray(currencies) &&
-                                currencies.find((c) => c.code === code)
-                                  ? currencies.find((c) => c.code === code).name
-                                  : code}
-                              </td>
-                              <td className='text-end'>
-                                {currencies &&
-                                currencies.find((c) => c.code === code)
-                                  ? currencies.find((c) => c.code === code)
-                                      .symbol
-                                  : ''}{' '}
-                                {rate.toFixed(4)}
-                              </td>
-                            </tr>
-                          ))
+                          .map(([code, rate]) => {
+                            // Find the currency safely with defensive coding
+                            const currencyObj = Array.isArray(currencies)
+                              ? currencies.find((c) => c.code === code)
+                              : null;
+
+                            return (
+                              <tr key={code}>
+                                <td>
+                                  {code} -{' '}
+                                  {currencyObj ? currencyObj.name : code}
+                                </td>
+                                <td className='text-end'>
+                                  {currencyObj ? currencyObj.symbol : ''}{' '}
+                                  {rate.toFixed(4)}
+                                </td>
+                              </tr>
+                            );
+                          })
                       ) : (
                         <tr>
                           <td colSpan={2} className='text-center'>
