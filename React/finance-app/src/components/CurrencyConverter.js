@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Form, Button, Alert, Spinner } from 'react-bootstrap';
+import { Card, Form, Button, Alert, Spinner, Table } from 'react-bootstrap';
 import axios from 'axios';
 import {
   FaCheck,
@@ -72,32 +72,34 @@ const CurrencyConverter = ({ onCurrencyChange }) => {
 
   // Load state from localStorage on initial mount
   useEffect(() => {
-    // Try to load saved state from localStorage
-    const savedDefaultCurrency = localStorage.getItem(LS_DEFAULT_CURRENCY);
-    const savedUsingFallback =
-      localStorage.getItem(LS_FALLBACK_MODE) === 'true';
+    // Load currencies and rates from localStorage for offline mode
     const savedCurrencies = localStorage.getItem(LS_CURRENCIES);
     const savedRates = localStorage.getItem(LS_RATES);
+    const savedDefaultCurrency = localStorage.getItem(LS_DEFAULT_CURRENCY);
+    const savedFallbackMode = localStorage.getItem(LS_FALLBACK_MODE);
 
-    if (savedUsingFallback) {
-      setUsingFallback(true);
+    if (savedFallbackMode) {
+      setUsingFallback(savedFallbackMode === 'true');
     }
 
     if (savedDefaultCurrency) {
       setDefaultCurrency(savedDefaultCurrency);
       setFromCurrency(savedDefaultCurrency);
-
-      // Notify parent if we have a saved currency
-      if (onCurrencyChange) {
-        onCurrencyChange(savedDefaultCurrency);
-      }
     }
 
     if (savedCurrencies) {
       try {
-        setCurrencies(JSON.parse(savedCurrencies));
+        const parsedCurrencies = JSON.parse(savedCurrencies);
+        // Make sure it's an array before setting
+        if (Array.isArray(parsedCurrencies)) {
+          setCurrencies(parsedCurrencies);
+        } else {
+          setCurrencies(FALLBACK_CURRENCIES);
+          console.warn('Saved currencies is not an array, using fallback');
+        }
       } catch (e) {
         console.warn('Could not parse saved currencies:', e);
+        setCurrencies(FALLBACK_CURRENCIES);
       }
     }
 
@@ -106,6 +108,7 @@ const CurrencyConverter = ({ onCurrencyChange }) => {
         setRates(JSON.parse(savedRates));
       } catch (e) {
         console.warn('Could not parse saved rates:', e);
+        setRates(FALLBACK_RATES);
       }
     }
 
@@ -121,11 +124,11 @@ const CurrencyConverter = ({ onCurrencyChange }) => {
 
     localStorage.setItem(LS_FALLBACK_MODE, usingFallback.toString());
 
-    if (currencies.length > 0) {
+    if (currencies && currencies.length > 0) {
       localStorage.setItem(LS_CURRENCIES, JSON.stringify(currencies));
     }
 
-    if (Object.keys(rates).length > 0) {
+    if (rates && Object.keys(rates).length > 0) {
       localStorage.setItem(LS_RATES, JSON.stringify(rates));
     }
   }, [defaultCurrency, usingFallback, currencies, rates]);
@@ -190,7 +193,9 @@ const CurrencyConverter = ({ onCurrencyChange }) => {
 
       // First do a simple health check
       try {
-        const healthResponse = await axios.get('/health', { timeout: 2000 });
+        const healthResponse = await axios.get(`${API_URL}/health`, {
+          timeout: 2000,
+        });
         if (healthResponse.status !== 200) {
           throw new Error('API health check failed');
         }
@@ -503,6 +508,36 @@ const CurrencyConverter = ({ onCurrencyChange }) => {
     }
   };
 
+  // Currency selection dropdown in the table
+  const renderCurrencyOptions = () => {
+    // Add defensive check
+    if (!Array.isArray(currencies)) {
+      return <option value='USD'>USD</option>;
+    }
+    return currencies.map((currency) => (
+      <option key={currency.code} value={currency.code}>
+        {currency.code} - {currency.name} ({currency.symbol})
+      </option>
+    ));
+  };
+
+  // Default currency selection for the Change Default button
+  const renderDefaultCurrencyOptions = () => {
+    // Add defensive check
+    if (!Array.isArray(currencies)) {
+      return <option value='USD'>USD</option>;
+    }
+    return currencies.map((currency) => (
+      <option
+        key={currency.code}
+        value={currency.code}
+        disabled={currency.code === defaultCurrency}
+      >
+        {currency.code} - {currency.name} ({currency.symbol})
+      </option>
+    ));
+  };
+
   if (loading && !error) {
     return (
       <div className='text-center my-4'>
@@ -514,343 +549,269 @@ const CurrencyConverter = ({ onCurrencyChange }) => {
   }
 
   return (
-    <div className='currency-converter'>
-      <Card className='mb-4'>
-        <Card.Header className='d-flex justify-content-between align-items-center'>
-          <h4 className='mb-0'>
-            <FaExchangeAlt className='me-2' /> Currency Converter
-            {usingFallback && (
-              <span
-                className='badge bg-warning text-dark ms-2'
-                style={{ fontSize: '0.6rem' }}
-              >
-                Offline Mode
-              </span>
-            )}
-          </h4>
-          <div className='d-flex'>
-            <Button
-              variant={usingFallback ? 'outline-warning' : 'outline-secondary'}
-              size='sm'
-              className='me-2'
-              onClick={toggleOfflineMode}
-              title={
-                usingFallback
-                  ? 'Try to connect to server'
-                  : 'Work in offline mode'
-              }
-            >
-              {localStorage.getItem('finance_app_force_offline') === 'true'
-                ? 'Exit Offline Mode'
-                : usingFallback
-                ? 'Try Online Mode'
-                : 'Use Offline Mode'}
-            </Button>
-
-            {usingFallback &&
-              localStorage.getItem('finance_app_force_offline') !== 'true' && (
-                <Button
-                  variant='outline-primary'
-                  size='sm'
-                  className='me-2'
-                  onClick={fetchCurrencyData}
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <Spinner animation='border' size='sm' className='me-1' />
-                  ) : (
-                    'Retry Connection'
-                  )}
-                </Button>
-              )}
-
-            {currencies.length === 0 && (
-              <Button
-                variant='primary'
-                size='sm'
-                onClick={handleInitializeCurrencies}
-                disabled={initializing}
-              >
-                {initializing ? (
-                  <>
-                    <Spinner animation='border' size='sm' className='me-1' />
-                    Initializing...
-                  </>
-                ) : (
-                  'Initialize Currencies'
-                )}
-              </Button>
-            )}
+    <div className='currency-container'>
+      {/* Loading and Error Messages */}
+      {loading && !error && (
+        <div className='text-center py-4'>
+          <div className='spinner-border text-primary' role='status'>
+            <span className='visually-hidden'>Loading...</span>
           </div>
-        </Card.Header>
-        <Card.Body>
-          {error && (
-            <Alert
-              variant={usingFallback ? 'warning' : 'danger'}
-              className='d-flex justify-content-between align-items-center'
-            >
-              <div>{error}</div>
-              <div>
-                {error.includes('Initialize') && (
-                  <Button
-                    variant={
-                      usingFallback ? 'outline-warning' : 'outline-danger'
-                    }
-                    size='sm'
-                    onClick={handleInitializeCurrencies}
-                    disabled={initializing}
-                    className='me-2'
-                  >
-                    {initializing ? (
-                      <>
-                        <Spinner
-                          animation='border'
-                          size='sm'
-                          className='me-1'
-                        />{' '}
-                        Initializing...
-                      </>
-                    ) : (
-                      'Initialize'
-                    )}
-                  </Button>
+          <p className='mt-2'>Loading currency data...</p>
+        </div>
+      )}
+
+      {error && (
+        <Alert variant='warning' className='my-3'>
+          <Alert.Heading>
+            <i className='fas fa-exclamation-triangle me-2'></i>
+            {usingFallback ? 'Offline Mode' : 'Warning'}
+          </Alert.Heading>
+          <p>{error}</p>
+          {usingFallback && (
+            <div className='mt-3'>
+              <p className='mb-1'>
+                <strong>Using saved or default exchange rates:</strong>
+              </p>
+              <ul className='mb-0'>
+                {Object.keys(rates || {}).length > 0 ? (
+                  // Only show first 5 rates to avoid clutter
+                  Object.entries(rates || {})
+                    .slice(0, 5)
+                    .map(([code, rate]) => (
+                      <li key={code}>
+                        1 {defaultCurrency} = {rate.toFixed(4)} {code}
+                      </li>
+                    ))
+                ) : (
+                  <li>No saved rates available</li>
                 )}
-                {usingFallback && (
+                {Object.keys(rates || {}).length > 5 && (
+                  <li>...and {Object.keys(rates || {}).length - 5} more</li>
+                )}
+              </ul>
+            </div>
+          )}
+        </Alert>
+      )}
+
+      {/* Currency Converter Card */}
+      {!loading && (
+        <div className='row'>
+          {/* Currency Converter */}
+          <div className='col-md-6 mb-4'>
+            <Card className='h-100'>
+              <Card.Header>
+                <h5 className='mb-0'>
+                  <i className='fas fa-exchange-alt me-2'></i>
+                  Currency Converter
+                </h5>
+              </Card.Header>
+              <Card.Body>
+                <Form>
+                  <Form.Group className='mb-3'>
+                    <Form.Label>Amount</Form.Label>
+                    <Form.Control
+                      type='number'
+                      value={amount}
+                      onChange={(e) => setAmount(Number(e.target.value))}
+                      placeholder='Enter amount'
+                    />
+                  </Form.Group>
+
+                  <div className='row'>
+                    <div className='col-md-5'>
+                      <Form.Group className='mb-3'>
+                        <Form.Label>From</Form.Label>
+                        <Form.Select
+                          value={fromCurrency}
+                          onChange={(e) => setFromCurrency(e.target.value)}
+                        >
+                          {renderCurrencyOptions()}
+                        </Form.Select>
+                      </Form.Group>
+                    </div>
+
+                    <div className='col-md-2 d-flex align-items-center justify-content-center mb-3'>
+                      <Button
+                        variant='outline-secondary'
+                        onClick={handleSwapCurrencies}
+                        className='swap-btn'
+                      >
+                        <i className='fas fa-exchange-alt'></i>
+                      </Button>
+                    </div>
+
+                    <div className='col-md-5'>
+                      <Form.Group className='mb-3'>
+                        <Form.Label>To</Form.Label>
+                        <Form.Select
+                          value={toCurrency}
+                          onChange={(e) => setToCurrency(e.target.value)}
+                        >
+                          {renderCurrencyOptions()}
+                        </Form.Select>
+                      </Form.Group>
+                    </div>
+                  </div>
+
+                  <div className='result-box p-3 my-3 text-center'>
+                    <h3>
+                      {convertedAmount !== null ? (
+                        <>
+                          {amount} {fromCurrency} = {convertedAmount.toFixed(2)}{' '}
+                          {toCurrency}
+                        </>
+                      ) : (
+                        'Enter an amount to convert'
+                      )}
+                    </h3>
+                    {rate !== null && (
+                      <p className='mb-0 text-muted'>
+                        1 {fromCurrency} = {rate.toFixed(4)} {toCurrency}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className='d-grid'>
+                    <Button
+                      variant='primary'
+                      onClick={handleCalculate}
+                      disabled={
+                        !amount || !fromCurrency || !toCurrency || amount <= 0
+                      }
+                    >
+                      Convert
+                    </Button>
+                  </div>
+                </Form>
+              </Card.Body>
+              <Card.Footer className='text-muted'>
+                {usingFallback ? (
+                  <div className='offline-notice'>
+                    <i className='fas fa-wifi-slash me-1'></i> Using offline
+                    rates
+                  </div>
+                ) : (
+                  <div className='online-notice'>
+                    <i className='fas fa-wifi me-1'></i> Using online rates
+                  </div>
+                )}
+              </Card.Footer>
+            </Card>
+          </div>
+
+          {/* Currency Management */}
+          <div className='col-md-6 mb-4'>
+            <Card className='h-100'>
+              <Card.Header>
+                <h5 className='mb-0'>
+                  <i className='fas fa-money-bill-wave me-2'></i>
+                  Currency Management
+                </h5>
+              </Card.Header>
+              <Card.Body>
+                <div className='mb-4'>
+                  <h6>Default Currency</h6>
+                  <div className='d-flex align-items-center'>
+                    <div className='current-default me-3'>
+                      {currencies && currencies.length > 0
+                        ? currencies.find((c) => c.code === defaultCurrency)
+                            ?.symbol || '$'
+                        : '$'}{' '}
+                      {defaultCurrency}
+                    </div>
+                    <div className='flex-grow-1'>
+                      <Form className='d-flex'>
+                        <Form.Select
+                          size='sm'
+                          value={newDefaultCurrency}
+                          onChange={(e) =>
+                            setNewDefaultCurrency(e.target.value)
+                          }
+                          className='me-2'
+                        >
+                          {renderDefaultCurrencyOptions()}
+                        </Form.Select>
+                        <Button
+                          size='sm'
+                          onClick={handleSetDefaultCurrency}
+                          disabled={newDefaultCurrency === defaultCurrency}
+                        >
+                          Set as Default
+                        </Button>
+                      </Form>
+                    </div>
+                  </div>
+                </div>
+
+                <h6>Exchange Rates</h6>
+                <div className='table-responsive rates-table'>
+                  <Table size='sm' hover>
+                    <thead>
+                      <tr>
+                        <th>Currency</th>
+                        <th className='text-end'>Rate (1 {defaultCurrency})</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rates && Object.keys(rates).length > 0 ? (
+                        Object.entries(rates)
+                          .filter(([code]) => code !== defaultCurrency)
+                          .map(([code, rate]) => (
+                            <tr key={code}>
+                              <td>
+                                {code} -{' '}
+                                {Array.isArray(currencies) &&
+                                currencies.find((c) => c.code === code)
+                                  ? currencies.find((c) => c.code === code).name
+                                  : code}
+                              </td>
+                              <td className='text-end'>
+                                {currencies &&
+                                currencies.find((c) => c.code === code)
+                                  ? currencies.find((c) => c.code === code)
+                                      .symbol
+                                  : ''}{' '}
+                                {rate.toFixed(4)}
+                              </td>
+                            </tr>
+                          ))
+                      ) : (
+                        <tr>
+                          <td colSpan={2} className='text-center'>
+                            No exchange rates available
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </Table>
+                </div>
+
+                <div className='d-grid gap-2 mt-3'>
                   <Button
-                    variant='outline-warning'
+                    variant='secondary'
                     size='sm'
                     onClick={fetchCurrencyData}
                     disabled={loading}
                   >
-                    Retry
+                    <i className='fas fa-sync-alt me-2'></i>
+                    Refresh Rates
                   </Button>
-                )}
-              </div>
-            </Alert>
-          )}
-
-          {usingFallback && !error && (
-            <Alert variant='warning' className='mb-3'>
-              <div className='d-flex justify-content-between align-items-center'>
-                <div>
-                  <strong>Offline Mode:</strong> Using local currency data. Some
-                  features may be limited.
-                </div>
-                <Button
-                  variant='outline-warning'
-                  size='sm'
-                  onClick={fetchCurrencyData}
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <Spinner animation='border' size='sm' className='me-1' />
-                  ) : (
-                    'Retry Connection'
-                  )}
-                </Button>
-              </div>
-            </Alert>
-          )}
-
-          <Form onSubmit={handleConvert}>
-            <div className='row'>
-              <div className='col-md-4 mb-3'>
-                <Form.Group>
-                  <Form.Label>Amount</Form.Label>
-                  <div className='input-group'>
-                    <span className='input-group-text'>
-                      {fromCurrency === 'USD' ? (
-                        <FaDollarSign />
-                      ) : fromCurrency === 'EUR' ? (
-                        <FaEuroSign />
-                      ) : (
-                        '#'
-                      )}
-                    </span>
-                    <Form.Control
-                      type='number'
-                      step='0.01'
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      required
-                    />
-                  </div>
-                </Form.Group>
-              </div>
-
-              <div className='col-md-4 mb-3'>
-                <Form.Group>
-                  <Form.Label>From</Form.Label>
-                  <Form.Select
-                    value={fromCurrency}
-                    onChange={(e) => setFromCurrency(e.target.value)}
+                  <Button
+                    variant='outline-primary'
+                    size='sm'
+                    onClick={handleInitializeCurrencies}
+                    disabled={loading}
                   >
-                    {currencies.map((currency) => (
-                      <option key={currency.code} value={currency.code}>
-                        {currency.name} ({currency.symbol})
-                      </option>
-                    ))}
-                  </Form.Select>
-                </Form.Group>
-              </div>
-
-              <div className='col-md-4 mb-3'>
-                <Form.Group>
-                  <Form.Label>To</Form.Label>
-                  <Form.Select
-                    value={toCurrency}
-                    onChange={(e) => setToCurrency(e.target.value)}
-                  >
-                    {currencies.map((currency) => (
-                      <option key={currency.code} value={currency.code}>
-                        {currency.name} ({currency.symbol})
-                      </option>
-                    ))}
-                  </Form.Select>
-                </Form.Group>
-              </div>
-            </div>
-
-            <Button
-              variant='primary'
-              type='submit'
-              disabled={converting || currencies.length === 0}
-              className='mb-3'
-            >
-              {converting ? (
-                <>
-                  <Spinner animation='border' size='sm' className='me-2' />
-                  Converting...
-                </>
-              ) : (
-                <>
-                  <FaExchangeAlt className='me-2' /> Convert
-                </>
-              )}
-            </Button>
-          </Form>
-
-          {result && (
-            <div className='result-box p-4 bg-light rounded mt-3 border'>
-              <h5 className='d-flex align-items-center mb-3'>
-                <FaExchangeAlt className='me-2 text-primary' />
-                Conversion Result
-              </h5>
-              <div className='d-flex justify-content-center align-items-center my-3'>
-                <div className='text-center px-3'>
-                  <div className='text-muted'>From</div>
-                  <h4 className='mb-0'>{result.original_amount.toFixed(2)}</h4>
-                  <div className='badge bg-secondary'>
-                    {result.original_currency}
-                  </div>
+                    <i className='fas fa-database me-2'></i>
+                    Initialize Default Currencies
+                  </Button>
                 </div>
-
-                <div className='px-3 text-primary'>
-                  <FaExchangeAlt size={24} />
-                </div>
-
-                <div className='text-center px-3'>
-                  <div className='text-muted'>To</div>
-                  <h4 className='mb-0 text-primary'>
-                    {result.converted_amount.toFixed(2)}
-                  </h4>
-                  <div className='badge bg-primary'>
-                    {result.converted_currency}
-                  </div>
-                </div>
-              </div>
-              <div className='text-center text-muted small'>
-                Exchange rate: 1 {result.original_currency} ={' '}
-                {result.exchange_rate} {result.converted_currency}
-              </div>
-            </div>
-          )}
-        </Card.Body>
-      </Card>
-
-      <Card>
-        <Card.Header className='d-flex justify-content-between align-items-center'>
-          <h4 className='mb-0'>
-            <FaDollarSign className='me-2' /> Default Currency
-            {usingFallback && (
-              <span
-                className='badge bg-warning text-dark ms-2'
-                style={{ fontSize: '0.6rem' }}
-              >
-                Offline Mode
-              </span>
-            )}
-          </h4>
-          {defaultCurrency && (
-            <span className='badge bg-primary'>{defaultCurrency}</span>
-          )}
-        </Card.Header>
-        <Card.Body>
-          {usingFallback && (
-            <Alert variant='warning' className='mb-3'>
-              <small>
-                In offline mode, currency changes will only apply locally and
-                won't be saved to the server.
-              </small>
-            </Alert>
-          )}
-
-          <p className='mb-3'>
-            Set the default currency for all transactions across the
-            application.
-            {defaultCurrency && (
-              <span className='ms-2'>
-                Current default: <strong>{defaultCurrency}</strong>
-              </span>
-            )}
-          </p>
-
-          <div className='row'>
-            {currencies.map((currency) => (
-              <div key={currency.code} className='col-md-4 mb-2'>
-                <Button
-                  variant={
-                    currency.code === defaultCurrency
-                      ? 'primary'
-                      : 'outline-primary'
-                  }
-                  className='w-100 position-relative'
-                  onClick={() => handleSetDefault(currency.code)}
-                  disabled={currency.code === defaultCurrency || loading}
-                >
-                  {currency.name} ({currency.symbol})
-                  {currency.code === defaultCurrency && (
-                    <span className='position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success'>
-                      <FaCheck size={10} />
-                    </span>
-                  )}
-                </Button>
-              </div>
-            ))}
+              </Card.Body>
+            </Card>
           </div>
-
-          {currencies.length === 0 && !loading && (
-            <div className='text-center mt-3'>
-              <p className='text-muted'>No currencies available</p>
-              <Button
-                variant='primary'
-                size='sm'
-                onClick={handleInitializeCurrencies}
-                disabled={initializing}
-              >
-                {initializing ? (
-                  <>
-                    <Spinner animation='border' size='sm' className='me-1' />{' '}
-                    Initializing...
-                  </>
-                ) : (
-                  'Initialize Currencies'
-                )}
-              </Button>
-            </div>
-          )}
-        </Card.Body>
-      </Card>
+        </div>
+      )}
     </div>
   );
 };
