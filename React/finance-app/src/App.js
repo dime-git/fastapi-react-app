@@ -5,6 +5,8 @@ import {
   Route,
   Link,
   useLocation,
+  Navigate,
+  useNavigate,
 } from 'react-router-dom';
 import api from './api';
 import TransactionItem from './components/TransactionItem';
@@ -13,6 +15,8 @@ import BudgetManager from './components/BudgetManager';
 import RecurringTransactions from './components/RecurringTransactions';
 import CurrencyConverter from './components/CurrencyConverter';
 import GoalsTracker from './components/GoalsTracker';
+import FirebaseAuth from './components/FirebaseAuth';
+import PrivateRoute from './components/PrivateRoute';
 import './App.css';
 import {
   Navbar,
@@ -41,7 +45,10 @@ import {
   FaChartPie,
   FaMoon,
   FaSun,
+  FaSignOutAlt,
+  FaUserCircle,
 } from 'react-icons/fa';
+import { auth } from './firebase';
 
 const Layout = ({
   children,
@@ -59,6 +66,24 @@ const Layout = ({
 }) => {
   const [showAddTransaction, setShowAddTransaction] = useState(false);
   const location = useLocation();
+  const [currentUser, setCurrentUser] = useState(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setCurrentUser(user);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await auth.signOut();
+      navigate('/login');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
 
   const totalIncome = transactions
     .filter((t) => t.is_income)
@@ -88,58 +113,81 @@ const Layout = ({
           <Navbar.Toggle aria-controls='basic-navbar-nav' />
           <Navbar.Collapse id='basic-navbar-nav'>
             <Nav className='ms-auto'>
-              <Nav.Link
-                as={Link}
-                to='/'
-                className={`px-3 ${location.pathname === '/' ? 'active' : ''}`}
-              >
-                <FaChartLine className='me-1' /> Dashboard
-              </Nav.Link>
-              <Nav.Link
-                as={Link}
-                to='/budgets'
-                className={`px-3 ${
-                  location.pathname === '/budgets' ? 'active' : ''
-                }`}
-              >
-                <FaWallet className='me-1' /> Budgets
-              </Nav.Link>
-              <Nav.Link
-                as={Link}
-                to='/transactions'
-                className={`px-3 ${
-                  location.pathname === '/transactions' ? 'active' : ''
-                }`}
-              >
-                <FaRegStar className='me-1' /> Transactions
-              </Nav.Link>
-              <Nav.Link
-                as={Link}
-                to='/recurring'
-                className={`px-3 ${
-                  location.pathname === '/recurring' ? 'active' : ''
-                }`}
-              >
-                <FaCalendarAlt className='me-1' /> Recurring
-              </Nav.Link>
-              <Nav.Link
-                as={Link}
-                to='/currency'
-                className={`px-3 ${
-                  location.pathname === '/currency' ? 'active' : ''
-                }`}
-              >
-                <FaExchangeAlt className='me-1' /> Currency
-              </Nav.Link>
-              <Nav.Link
-                as={Link}
-                to='/goals'
-                className={`px-3 ${
-                  location.pathname === '/goals' ? 'active' : ''
-                }`}
-              >
-                <FaFlagCheckered className='me-1' /> Goals
-              </Nav.Link>
+              {currentUser ? (
+                <>
+                  <Nav.Link
+                    as={Link}
+                    to='/'
+                    className={`px-3 ${
+                      location.pathname === '/' ? 'active' : ''
+                    }`}
+                  >
+                    <FaChartLine className='me-1' /> Dashboard
+                  </Nav.Link>
+                  <Nav.Link
+                    as={Link}
+                    to='/budgets'
+                    className={`px-3 ${
+                      location.pathname === '/budgets' ? 'active' : ''
+                    }`}
+                  >
+                    <FaWallet className='me-1' /> Budgets
+                  </Nav.Link>
+                  <Nav.Link
+                    as={Link}
+                    to='/transactions'
+                    className={`px-3 ${
+                      location.pathname === '/transactions' ? 'active' : ''
+                    }`}
+                  >
+                    <FaRegStar className='me-1' /> Transactions
+                  </Nav.Link>
+                  <Nav.Link
+                    as={Link}
+                    to='/recurring'
+                    className={`px-3 ${
+                      location.pathname === '/recurring' ? 'active' : ''
+                    }`}
+                  >
+                    <FaCalendarAlt className='me-1' /> Recurring
+                  </Nav.Link>
+                  <Nav.Link
+                    as={Link}
+                    to='/currency'
+                    className={`px-3 ${
+                      location.pathname === '/currency' ? 'active' : ''
+                    }`}
+                  >
+                    <FaExchangeAlt className='me-1' /> Currency
+                  </Nav.Link>
+                  <Nav.Link
+                    as={Link}
+                    to='/goals'
+                    className={`px-3 ${
+                      location.pathname === '/goals' ? 'active' : ''
+                    }`}
+                  >
+                    <FaFlagCheckered className='me-1' /> Goals
+                  </Nav.Link>
+                  <div className='nav-link'>
+                    <FaUserCircle className='me-1' />{' '}
+                    {currentUser.displayName || currentUser.email}
+                  </div>
+                  <Nav.Link onClick={handleLogout} className='px-3'>
+                    <FaSignOutAlt className='me-1' /> Logout
+                  </Nav.Link>
+                </>
+              ) : (
+                <Nav.Link
+                  as={Link}
+                  to='/login'
+                  className={`px-3 ${
+                    location.pathname === '/login' ? 'active' : ''
+                  }`}
+                >
+                  <FaUserCircle className='me-1' /> Login
+                </Nav.Link>
+              )}
               <div
                 className='theme-toggle nav-link d-flex align-items-center'
                 onClick={toggleDarkMode}
@@ -147,65 +195,70 @@ const Layout = ({
                 {darkMode ? <FaSun className='text-warning' /> : <FaMoon />}
               </div>
             </Nav>
-            <Button
-              variant='success'
-              className='ms-3'
-              onClick={() => setShowAddTransaction(!showAddTransaction)}
-            >
-              <FaPlus className='me-1' /> Add Transaction
-            </Button>
+            {currentUser && (
+              <Button
+                variant='success'
+                className='ms-3'
+                onClick={() => setShowAddTransaction(!showAddTransaction)}
+              >
+                <FaPlus className='me-1' /> Add Transaction
+              </Button>
+            )}
           </Navbar.Collapse>
         </Container>
       </Navbar>
 
       <Container fluid>
-        <Row className='mb-4'>
-          <Col>
-            <div className='finance-summary d-flex justify-content-around p-4 rounded shadow'>
-              <div className='text-center'>
-                <h6 className='text-muted mb-2'>Income</h6>
-                <h3 className='text-success fw-bold'>
-                  {currencySymbol}
-                  {totalIncome.toFixed(2)}
-                </h3>
-                <small className='text-muted'>{displayCurrency}</small>
+        {currentUser && (
+          <Row className='mb-4'>
+            <Col>
+              <div className='finance-summary d-flex justify-content-around p-4 rounded shadow'>
+                <div className='text-center'>
+                  <h6 className='text-muted mb-2'>Income</h6>
+                  <h3 className='text-success fw-bold'>
+                    {currencySymbol}
+                    {totalIncome.toFixed(2)}
+                  </h3>
+                  <small className='text-muted'>{displayCurrency}</small>
+                </div>
+                <div className='text-center'>
+                  <h6 className='text-muted mb-2'>Expenses</h6>
+                  <h3 className='text-danger fw-bold'>
+                    {currencySymbol}
+                    {totalExpenses.toFixed(2)}
+                  </h3>
+                  <small className='text-muted'>{displayCurrency}</small>
+                </div>
+                <div className='text-center'>
+                  <h6 className='text-muted mb-2'>Balance</h6>
+                  <h3
+                    className={
+                      balance >= 0
+                        ? 'text-primary fw-bold'
+                        : 'text-danger fw-bold'
+                    }
+                  >
+                    {currencySymbol}
+                    {balance.toFixed(2)}
+                  </h3>
+                  <small className='text-muted'>{displayCurrency}</small>
+                </div>
+                <div className='text-center'>
+                  <h6 className='text-muted mb-2'>Currency</h6>
+                  <Form.Select
+                    className='form-select-sm'
+                    value={displayCurrency}
+                    onChange={(e) =>
+                      handleDisplayCurrencyChange(e.target.value)
+                    }
+                  >
+                    {currencyOptions}
+                  </Form.Select>
+                </div>
               </div>
-              <div className='text-center'>
-                <h6 className='text-muted mb-2'>Expenses</h6>
-                <h3 className='text-danger fw-bold'>
-                  {currencySymbol}
-                  {totalExpenses.toFixed(2)}
-                </h3>
-                <small className='text-muted'>{displayCurrency}</small>
-              </div>
-              <div className='text-center'>
-                <h6 className='text-muted mb-2'>Balance</h6>
-                <h3
-                  className={
-                    balance >= 0
-                      ? 'text-primary fw-bold'
-                      : 'text-danger fw-bold'
-                  }
-                >
-                  {currencySymbol}
-                  {balance.toFixed(2)}
-                </h3>
-                <small className='text-muted'>{displayCurrency}</small>
-              </div>
-              <div className='text-center'>
-                <h6 className='text-muted mb-2'>Currency</h6>
-                <Form.Select
-                  className='form-select-sm'
-                  value={displayCurrency}
-                  onChange={(e) => handleDisplayCurrencyChange(e.target.value)}
-                >
-                  {currencyOptions}
-                </Form.Select>
-                <small className='text-muted'>Display Currency</small>
-              </div>
-            </div>
-          </Col>
-        </Row>
+            </Col>
+          </Row>
+        )}
 
         {showAddTransaction && (
           <Row className='mb-4'>
@@ -666,48 +719,66 @@ const App = () => {
       <Layout {...layoutProps}>
         <Routes>
           <Route
-            path='/'
-            element={<DashboardPage transactions={transactions} />}
-          />
-          <Route
-            path='/budgets'
+            path='/login'
             element={
-              <BudgetsPage
-                transactions={transactions}
-                categories={categories}
-              />
+              auth.currentUser ? <Navigate to='/' replace /> : <FirebaseAuth />
             }
           />
+
+          {/* Protected Routes */}
+          <Route element={<PrivateRoute />}>
+            <Route
+              path='/'
+              element={<DashboardPage transactions={transactions} />}
+            />
+            <Route
+              path='/budgets'
+              element={
+                <BudgetsPage
+                  transactions={transactions}
+                  categories={categories}
+                />
+              }
+            />
+            <Route
+              path='/transactions'
+              element={
+                <TransactionsPage
+                  transactions={transactions}
+                  fetchTransactions={fetchTransactions}
+                />
+              }
+            />
+            <Route
+              path='/recurring'
+              element={
+                <RecurringPage
+                  categories={categories}
+                  fetchTransactions={fetchTransactions}
+                />
+              }
+            />
+            <Route
+              path='/currency'
+              element={
+                <CurrencyPage
+                  defaultCurrency={defaultCurrency}
+                  handleCurrencyChange={handleCurrencyChange}
+                />
+              }
+            />
+            <Route
+              path='/goals'
+              element={<GoalsPage displayCurrency={displayCurrency} />}
+            />
+          </Route>
+
+          {/* Redirect any other route to dashboard if logged in, or login page if not */}
           <Route
-            path='/transactions'
+            path='*'
             element={
-              <TransactionsPage
-                transactions={transactions}
-                fetchTransactions={fetchTransactions}
-              />
+              <Navigate to={auth.currentUser ? '/' : '/login'} replace />
             }
-          />
-          <Route
-            path='/recurring'
-            element={
-              <RecurringPage
-                categories={categories}
-                fetchTransactions={fetchTransactions}
-              />
-            }
-          />
-          <Route
-            path='/currency'
-            element={
-              <CurrencyPage
-                defaultCurrency={defaultCurrency}
-                handleCurrencyChange={handleCurrencyChange}
-              />
-            }
-          />
-          <Route
-            path='/goals'
-            element={<GoalsPage displayCurrency={displayCurrency} />}
           />
         </Routes>
       </Layout>

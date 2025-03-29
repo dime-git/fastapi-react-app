@@ -2,15 +2,16 @@
 
 :root {
   --primary: #4361ee;
-  --primary-light: #4895ef;
-  --primary-dark: #3f37c9;
-  --secondary: #4cc9f0;
-  --success: #4ade80;
-  --danger: #f72585;
-  --warning: #ffd166;
-  --info: #0ea5e9;
+  --primary-rgb: 67, 97, 238;
+  --primary-dark: #3048c8;
+  --primary-light: #5e78f1;
+  --secondary: #6c757d;
+  --success: #198754;
+  --danger: #dc3545;
+  --warning: #ffc107;
+  --info: #0dcaf0;
   --light: #f8f9fa;
-  --dark: #1e2329;
+  --dark: #212529;
   --gray-100: #f8f9fa;
   --gray-200: #e9ecef;
   --gray-300: #dee2e6;
@@ -30,6 +31,24 @@
   --header-height: 64px;
   --section-spacing: 1.5rem;
   --component-spacing: 1.25rem;
+
+  /* Light Mode Variables */
+  --bg-color: #f8f9fa;
+  --card-bg: #ffffff;
+  --text-color: #212529;
+  --text-muted: #6c757d;
+  --border-color: #dee2e6;
+  --heading-color: #343a40;
+  --input-bg: #ffffff;
+
+  /* Dark Mode Variables */
+  --bg-color-dark: #121212;
+  --card-bg-dark: #1e1e1e;
+  --text-color-dark: #e1e1e1;
+  --text-color-light: #f8f9fa;
+  --border-color-dark: #343a40;
+  --heading-color-dark: #f8f9fa;
+  --input-bg-dark: #2a2a2a;
 }
 
 /* Dark mode variables */
@@ -51,13 +70,18 @@
   --gray-900: #f8f9fa;
   --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   --card-hover-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+  --bg-color: var(--bg-color-dark);
+  --card-bg: var(--card-bg-dark);
+  --text-color: var(--text-color-dark);
+  --heading-color: var(--heading-color-dark);
+  --input-bg: var(--input-bg-dark);
+  --border-color: var(--border-color-dark);
 }
 
-/* Base styles */
 body {
   font-family: var(--font-family);
-  background-color: var(--body-bg);
-  color: var(--gray-800);
+  background-color: var(--bg-color);
+  color: var(--text-color);
   transition: background-color 0.3s ease, color 0.3s ease;
   overflow-x: hidden;
   scroll-behavior: smooth;
@@ -882,4 +906,94 @@ input[type="date"] {
 .page-transition-exit-active {
   opacity: 0;
   transition: opacity 300ms;
+}
+
+/* Authentication Styles */
+.auth-container {
+  max-width: 500px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background-color: var(--card-bg);
+  border-radius: 10px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+}
+
+.auth-container h2 {
+  color: var(--heading-color);
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.auth-container p {
+  text-align: center;
+  margin-bottom: 2rem;
+  color: var(--text-muted);
+}
+
+/* Firebase UI Elements */
+#firebaseui-auth-container {
+  margin-top: 1.5rem;
+}
+
+.firebaseui-container {
+  max-width: 100% !important;
+  font-family: inherit !important;
+}
+
+.firebaseui-card-content {
+  padding: 0 !important;
+}
+
+/* Google Sign In Button */
+.firebaseui-idp-google {
+  background-color: white !important;
+  color: #757575 !important;
+  border: 1px solid #d6d6d6 !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  font-weight: 500 !important;
+  border-radius: 4px !important;
+  height: 48px !important;
+  margin-bottom: 20px !important;
+  transition: all 0.3s ease !important;
+}
+
+.firebaseui-idp-google:hover {
+  background-color: #f8f8f8 !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+.firebaseui-idp-google .firebaseui-idp-icon {
+  width: 24px !important;
+  height: 24px !important;
+}
+
+.firebaseui-idp-text {
+  font-size: 16px !important;
+  padding-left: 16px !important;
+}
+
+/* Add more space between providers */
+.firebaseui-idp-list>.firebaseui-list-item {
+  margin-bottom: 16px !important;
+}
+
+/* Dark mode specific styles for Firebase UI */
+.dark-mode .firebaseui-input {
+  background-color: var(--input-bg-dark) !important;
+  border-color: var(--border-color-dark) !important;
+  color: var(--text-color-light) !important;
+}
+
+.dark-mode .firebaseui-label {
+  color: var(--text-color-light) !important;
+}
+
+.dark-mode .firebaseui-link {
+  color: var(--primary-light) !important;
+}
+
+.dark-mode .firebaseui-idp-google {
+  background-color: #2d2d2d !important;
+  color: #ffffff !important;
+  border-color: #444444 !important;
 }
