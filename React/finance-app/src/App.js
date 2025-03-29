@@ -39,6 +39,8 @@ import {
   FaRegStar,
   FaSpinner,
   FaChartPie,
+  FaMoon,
+  FaSun,
 } from 'react-icons/fa';
 
 const Layout = ({
@@ -52,6 +54,8 @@ const Layout = ({
   isLoading,
   categories,
   handleDisplayCurrencyChange,
+  darkMode,
+  toggleDarkMode,
 }) => {
   const [showAddTransaction, setShowAddTransaction] = useState(false);
   const location = useLocation();
@@ -74,8 +78,8 @@ const Layout = ({
   ));
 
   return (
-    <div className='finance-app'>
-      <Navbar expand='lg' bg='dark' variant='dark' className='mb-4'>
+    <div className={`finance-app ${darkMode ? 'dark-mode' : ''}`}>
+      <Navbar expand='lg' bg='primary' variant='dark' className='mb-4'>
         <Container>
           <Navbar.Brand as={Link} to='/'>
             <FaDollarSign className='me-2' />
@@ -136,6 +140,12 @@ const Layout = ({
               >
                 <FaFlagCheckered className='me-1' /> Goals
               </Nav.Link>
+              <div
+                className='theme-toggle nav-link d-flex align-items-center'
+                onClick={toggleDarkMode}
+              >
+                {darkMode ? <FaSun className='text-warning' /> : <FaMoon />}
+              </div>
             </Nav>
             <Button
               variant='success'
@@ -151,7 +161,7 @@ const Layout = ({
       <Container fluid>
         <Row className='mb-4'>
           <Col>
-            <div className='finance-summary d-flex justify-content-around p-4 bg-white rounded shadow'>
+            <div className='finance-summary d-flex justify-content-around p-4 rounded shadow'>
               <div className='text-center'>
                 <h6 className='text-muted mb-2'>Income</h6>
                 <h3 className='text-success fw-bold'>
@@ -320,7 +330,7 @@ const Layout = ({
         <div className='main-content'>{children}</div>
       </Container>
 
-      <footer className='bg-dark text-white text-center py-4 mt-5'>
+      <footer className='bg-primary text-white text-center py-4 mt-5'>
         <Container>
           <p className='mb-0'>
             Finance Dashboard &copy; {new Date().getFullYear()}
@@ -510,6 +520,16 @@ const App = () => {
   const [categories, setCategories] = useState([]);
   const [defaultCurrency, setDefaultCurrency] = useState('USD');
   const [displayCurrency, setDisplayCurrency] = useState('USD'); // For display only
+  const [darkMode, setDarkMode] = useState(
+    localStorage.getItem('darkMode') === 'true'
+  );
+
+  // Toggle dark mode
+  const toggleDarkMode = () => {
+    const newDarkMode = !darkMode;
+    setDarkMode(newDarkMode);
+    localStorage.setItem('darkMode', newDarkMode);
+  };
 
   // Format category string to add spaces between words
   const formatCategory = (category) => {
@@ -637,19 +657,21 @@ const App = () => {
     isLoading,
     categories,
     handleDisplayCurrencyChange,
+    darkMode,
+    toggleDarkMode,
   };
 
   return (
     <Router>
       <Layout {...layoutProps}>
-    <Routes>
-      <Route
-        path='/'
+        <Routes>
+          <Route
+            path='/'
             element={<DashboardPage transactions={transactions} />}
           />
-      <Route
-        path='/budgets'
-        element={
+          <Route
+            path='/budgets'
+            element={
               <BudgetsPage
                 transactions={transactions}
                 categories={categories}
@@ -665,29 +687,29 @@ const App = () => {
               />
             }
           />
-      <Route
-        path='/recurring'
-        element={
+          <Route
+            path='/recurring'
+            element={
               <RecurringPage
                 categories={categories}
                 fetchTransactions={fetchTransactions}
               />
             }
           />
-      <Route
-        path='/currency'
-        element={
+          <Route
+            path='/currency'
+            element={
               <CurrencyPage
                 defaultCurrency={defaultCurrency}
                 handleCurrencyChange={handleCurrencyChange}
               />
             }
           />
-      <Route
-        path='/goals'
+          <Route
+            path='/goals'
             element={<GoalsPage displayCurrency={displayCurrency} />}
-      />
-    </Routes>
+          />
+        </Routes>
       </Layout>
     </Router>
   );
