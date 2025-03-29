@@ -7,6 +7,26 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
+# Create empty class that just returns empty results instead of failing
+class EmptyFirestore:
+    def collection(self, name):
+        return self
+    
+    def document(self, id):
+        return self
+    
+    def get(self):
+        return None
+    
+    def where(self, *args, **kwargs):
+        return self
+    
+    def limit(self, limit):
+        return self
+    
+    def order_by(self, field, direction=None):
+        return self
+
 # For secure deployment, we use multiple ways to get Firebase credentials
 def initialize_firebase():
     try:
@@ -75,9 +95,9 @@ try:
     db = firestore.client()
 except Exception as e:
     print(f"Failed to initialize Firebase: {e}")
-    # If Firebase initialization fails, handle it gracefully in production
+    # If Firebase initialization fails, provide an empty implementation that won't cause errors
     app = None
-    db = None
+    db = EmptyFirestore()
 
 # CORS Configuration
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
