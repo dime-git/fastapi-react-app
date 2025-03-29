@@ -3,13 +3,9 @@ from firebase_admin import auth
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import Optional
-import os
 
 # Initialize HTTP Bearer scheme for token authentication
 security = HTTPBearer()
-
-# Skip auth for testing if needed
-SKIP_AUTH = os.getenv("SKIP_AUTH", "False").lower() in ("true", "1", "t")
 
 class AuthService:
     """Service for handling authentication via Firebase"""
@@ -28,15 +24,6 @@ class AuthService:
         Raises:
             HTTPException: If token is invalid, expired, or missing
         """
-        # Skip auth if configured to do so (for testing only)
-        if SKIP_AUTH:
-            return {
-                "uid": "test-user-id",
-                "email": "test@example.com",
-                "email_verified": True,
-                "name": "Test User"
-            }
-            
         token = credentials.credentials
         
         try:

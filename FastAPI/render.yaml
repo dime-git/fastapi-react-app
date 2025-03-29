@@ -6,13 +6,6 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
-      # For initial deployment, exclude the full API with Firebase dependencies
-      - key: INCLUDE_FULL_API
-        value: false
-      # Set to production for secure CORS
-      - key: ENV
-        value: production
-      # These can be configured later in the dashboard
       - key: FIREBASE_PROJECT_ID
         sync: false
       - key: FIREBASE_CLIENT_EMAIL
@@ -32,9 +25,11 @@ services:
       - key: FIREBASE_CLIENT_CERT_URL
         sync: false
       - key: FIREBASE_SERVICE_ACCOUNT_JSON
-        sync: false
+        sync: false # This will hold the entire JSON contents as a string
       - key: CORS_ORIGINS
         value: https://finance-app-7a318.web.app,https://finance-app-7a318.firebaseapp.com
+      - key: ENV
+        value: production
       - key: DEBUG
         value: false
     # Uncomment and configure if you need a database
