@@ -2,22 +2,25 @@
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import 'firebase/compat/firestore';
+import { firebaseConfig } from './config';
 
-// Your web app's Firebase configuration
-const firebaseConfig = {
-  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
-  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.REACT_APP_FIREBASE_APP_ID,
-  measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID,
-};
+// Add verbose logging
+console.log('Firebase initialization starting...');
+console.log('Config being used:', JSON.stringify(firebaseConfig));
 
-// Initialize Firebase
-const app = firebase.initializeApp(firebaseConfig);
-export const auth = firebase.auth();
-export const db = firebase.firestore();
+let app, auth, db;
 
-export { app, firebase };
+try {
+  // Initialize Firebase
+  app = firebase.initializeApp(firebaseConfig);
+  console.log('Firebase initialized successfully');
+  auth = firebase.auth();
+  db = firebase.firestore();
+  console.log('Auth and Firestore services created');
+} catch (error) {
+  console.error('Error initializing Firebase:', error);
+  throw error;
+}
+
+export { app, firebase, auth, db };
 export default app;
