@@ -68,7 +68,7 @@ def initialize_firebase():
                     pk_length = len(private_key) if private_key else 0
                     pk_preview = private_key[:10] + "..." if pk_length > 10 else ""
                     print(f"Private key length: {pk_length}, Preview: {pk_preview}")
-                    print(f"Private key contains actual newlines: {'\\n' in private_key}")
+                    print("Private key contains actual newlines:", "\n" in private_key)
                     
                     cred = credentials.Certificate(cred_dict)
             
