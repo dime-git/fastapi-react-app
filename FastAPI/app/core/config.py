@@ -1,8 +1,13 @@
 import firebase_admin
 from firebase_admin import credentials, firestore
 import os
+from dotenv import load_dotenv
 
-# Get the absolute path to the service account key
+# Load environment variables
+load_dotenv()
+
+# For secure deployment, we should use either environment variables
+# or a secure method to store and access service account credentials
 service_account_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../serviceAccountKey.json'))
 
 # Check if Firebase app is already initialized
@@ -24,12 +29,8 @@ app = initialize_firebase()
 db = firestore.client()
 
 # CORS Configuration
-CORS_ORIGINS = [
-    "http://localhost:3000",
-    "http://localhost:8000",
-    "http://localhost",
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1:8000",
-    "http://127.0.0.1",
-    "*"
-] 
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
+
+# App Settings
+PORT = int(os.getenv("PORT", 8000))
+DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "t") 
