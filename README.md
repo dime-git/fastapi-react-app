@@ -32,17 +32,13 @@ A personal finance management application that allows users to track expenses, m
 
 ### Environment Setup
 
-1. **Frontend (.env file)**: In the `React/finance-app` directory, make sure you have a `.env` file with the following variables:
+1. **Frontend Configuration**: For deployment, we're using a direct configuration file:
 
-   ```
-   REACT_APP_FIREBASE_API_KEY=your-api-key
-   REACT_APP_FIREBASE_AUTH_DOMAIN=your-project-id.firebaseapp.com
-   REACT_APP_FIREBASE_PROJECT_ID=your-project-id
-   REACT_APP_FIREBASE_STORAGE_BUCKET=your-storage-bucket
-   REACT_APP_FIREBASE_MESSAGING_SENDER_ID=your-sender-id
-   REACT_APP_FIREBASE_APP_ID=your-app-id
-   REACT_APP_FIREBASE_MEASUREMENT_ID=your-measurement-id
-   ```
+   - The Firebase configuration is in `React/finance-app/src/config.js`
+   - **Important**: For actual production deployment, consider using:
+     - Environment variables in your hosting platform
+     - Runtime configuration injection
+     - Or keep the config file approach but use a deployment process that replaces values
 
 2. **Backend (.env file)**: In the `FastAPI` directory, create a `.env` file with:
 
@@ -103,3 +99,4 @@ A personal finance management application that allows users to track expenses, m
 - Use environment variables in deployment platforms
 - For the Firebase service account key, use secure storage options provided by your hosting platform
 - Update CORS settings in production to only allow your specific domain
+- The Firebase client configuration is generally considered public information, but using environment variables or platform configuration is still a good practice

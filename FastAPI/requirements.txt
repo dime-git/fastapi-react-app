@@ -1,0 +1,11 @@
+fastapi==0.103.1
+uvicorn==0.23.2
+firebase-admin==6.2.0
+python-dotenv==1.0.0
+python-multipart==0.0.6
+email-validator==2.0.0
+httpx==0.24.1
+pydantic==2.3.0
+pydantic-settings==2.0.3
+httptools==0.6.0
+watchfiles==0.20.0 
