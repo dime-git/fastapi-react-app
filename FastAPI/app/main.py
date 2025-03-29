@@ -5,6 +5,8 @@ from app.api.routes.transactions import router as transactions_router
 from app.api.routes.budget import router as budget_router
 from app.api.routes.recurring_transaction import router as recurring_transaction_router
 from app.api.routes.currency import router as currency_router
+from app.api.routes.goals import goals_router
+from app.api.routes.auth import auth_router
 from app.services.currency_service import CurrencyService
 
 def create_app() -> FastAPI:
@@ -27,6 +29,8 @@ def create_app() -> FastAPI:
     app.include_router(budget_router, prefix="/api")
     app.include_router(recurring_transaction_router, prefix="/api")
     app.include_router(currency_router, prefix="/api")
+    app.include_router(goals_router, prefix="/api")
+    app.include_router(auth_router, prefix="/api")
     
     @app.get("/health")
     def health_check():
