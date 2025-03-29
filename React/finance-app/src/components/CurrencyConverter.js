@@ -63,6 +63,9 @@ const CurrencyConverter = ({ onCurrencyChange }) => {
   const [fromCurrency, setFromCurrency] = useState('USD');
   const [toCurrency, setToCurrency] = useState('EUR');
   const [result, setResult] = useState(null);
+  const [convertedAmount, setConvertedAmount] = useState(null);
+  const [rate, setRate] = useState(null);
+  const [newDefaultCurrency, setNewDefaultCurrency] = useState('');
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -142,7 +145,8 @@ const CurrencyConverter = ({ onCurrencyChange }) => {
       try {
         currenciesToUse = JSON.parse(savedCurrencies);
       } catch (e) {
-        console.warn('Could not parse saved currencies, using defaults:', e);
+        // Using defaults
+        currenciesToUse = FALLBACK_CURRENCIES;
       }
     }
 
@@ -166,13 +170,56 @@ const CurrencyConverter = ({ onCurrencyChange }) => {
       try {
         ratesToUse = JSON.parse(savedRates);
       } catch (e) {
-        console.warn('Could not parse saved rates, using defaults:', e);
+        // Using defaults
+        ratesToUse = FALLBACK_RATES;
       }
     }
 
     setRates(ratesToUse);
     setUsingFallback(true);
     setLoading(false);
+  };
+
+  // Handle swapping the currencies
+  const handleSwapCurrencies = () => {
+    const temp = fromCurrency;
+    setFromCurrency(toCurrency);
+    setToCurrency(temp);
+  };
+
+  // Handle calculation of conversion
+  const handleCalculate = () => {
+    if (!amount || amount <= 0 || !fromCurrency || !toCurrency) {
+      return;
+    }
+
+    let convertedValue = 0;
+    let exchangeRate = 0;
+
+    if (fromCurrency === toCurrency) {
+      // Same currency
+      convertedValue = amount;
+      exchangeRate = 1;
+    } else if (rates[fromCurrency] && rates[fromCurrency][toCurrency]) {
+      // Direct conversion
+      exchangeRate = rates[fromCurrency][toCurrency];
+      convertedValue = amount * exchangeRate;
+    } else {
+      // Fallback to 1:1 exchange rate
+      exchangeRate = 1;
+      convertedValue = amount;
+    }
+
+    // Update all state variables with the result
+    setConvertedAmount(convertedValue);
+    setRate(exchangeRate);
+    setResult({
+      original_amount: parseFloat(amount),
+      original_currency: fromCurrency,
+      converted_amount: convertedValue,
+      converted_currency: toCurrency,
+      exchange_rate: exchangeRate,
+    });
   };
 
   const fetchCurrencyData = async () => {
@@ -343,100 +390,6 @@ const CurrencyConverter = ({ onCurrencyChange }) => {
       setInitializing(false);
       throw err; // Rethrow for error handling in caller
     }
-  };
-
-  const handleConvert = async (e) => {
-    if (e) e.preventDefault();
-
-    if (!amount || !fromCurrency || !toCurrency) {
-      setError('Please fill in all fields');
-      return;
-    }
-
-    try {
-      setConverting(true);
-      setError('');
-
-      if (usingFallback) {
-        // Use fallback calculation in offline mode
-        calculateFallbackConversion();
-      } else {
-        try {
-          const response = await axios.post(`${API_URL}/currencies/convert`, {
-            amount: parseFloat(amount),
-            from_currency: fromCurrency,
-            to_currency: toCurrency,
-          });
-
-          setResult(response.data);
-        } catch (conversionErr) {
-          console.warn(
-            'API conversion failed, using fallback calculation',
-            conversionErr
-          );
-          calculateFallbackConversion();
-        }
-      }
-
-      setConverting(false);
-    } catch (err) {
-      console.error('Error during conversion:', err);
-      calculateFallbackConversion();
-      setConverting(false);
-    }
-  };
-
-  const calculateFallbackConversion = () => {
-    if (fromCurrency === toCurrency) {
-      setResult({
-        original_amount: parseFloat(amount),
-        original_currency: fromCurrency,
-        converted_amount: parseFloat(amount),
-        converted_currency: toCurrency,
-        exchange_rate: 1.0,
-      });
-      return;
-    }
-
-    // Direct conversion if available
-    if (
-      FALLBACK_RATES[fromCurrency] &&
-      FALLBACK_RATES[fromCurrency][toCurrency]
-    ) {
-      const rate = FALLBACK_RATES[fromCurrency][toCurrency];
-      setResult({
-        original_amount: parseFloat(amount),
-        original_currency: fromCurrency,
-        converted_amount: parseFloat(amount) * rate,
-        converted_currency: toCurrency,
-        exchange_rate: rate,
-      });
-      return;
-    }
-
-    // Try via USD if direct conversion not available
-    let convertedAmount = parseFloat(amount);
-    let effectiveRate = 1.0;
-
-    if (fromCurrency !== 'USD' && FALLBACK_RATES[fromCurrency]?.USD) {
-      // Convert to USD first
-      convertedAmount = convertedAmount * FALLBACK_RATES[fromCurrency].USD;
-      effectiveRate = FALLBACK_RATES[fromCurrency].USD;
-
-      if (toCurrency !== 'USD' && FALLBACK_RATES.USD?.[toCurrency]) {
-        // Convert from USD to target
-        convertedAmount = convertedAmount * FALLBACK_RATES.USD[toCurrency];
-        effectiveRate = effectiveRate * FALLBACK_RATES.USD[toCurrency];
-      }
-    }
-
-    setResult({
-      original_amount: parseFloat(amount),
-      original_currency: fromCurrency,
-      converted_amount: convertedAmount,
-      converted_currency: toCurrency,
-      exchange_rate: effectiveRate,
-    });
   };
 
   const handleSetDefault = async (currencyCode) => {
@@ -656,18 +609,19 @@ const CurrencyConverter = ({ onCurrencyChange }) => {
 
                   <div className='result-box p-3 my-3 text-center'>
                     <h3>
-                      {convertedAmount !== null ? (
+                      {result ? (
                         <>
-                          {amount} {fromCurrency} = {convertedAmount.toFixed(2)}{' '}
-                          {toCurrency}
+                          {amount} {fromCurrency} ={' '}
+                          {result.converted_amount.toFixed(2)} {toCurrency}
                         </>
                       ) : (
                         'Enter an amount to convert'
                       )}
                     </h3>
-                    {rate !== null && (
+                    {result && (
                       <p className='mb-0 text-muted'>
-                        1 {fromCurrency} = {rate.toFixed(4)} {toCurrency}
+                        1 {fromCurrency} = {result.exchange_rate.toFixed(4)}{' '}
+                        {toCurrency}
                       </p>
                     )}
                   </div>
